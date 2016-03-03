@@ -5,44 +5,6 @@ import math
 raw_input = lambda : sys.stdin.readline().strip()
 
 
-class Point:
-    def __init__(self, _x, _y):
-        self.x = int(_x)
-        self.y = int(_y)
-
-    def left(self):
-        if not hasattr(self, "_left"):
-            self._left = Point(self.x, self.y+1)
-        return self._left
-
-    def right(self):
-        if not hasattr(self, "_right"):
-            self._right = Point(self.x, self.y-1)
-        return self._right
-
-    def up(self):
-        if not hasattr(self, "_up"):
-            self._up = Point(self.x+1, self.y)
-        return self._up
-
-    def down(self):
-        if not hasattr(self, "_down"):
-            self._down = Point(self.x-1, self.y)
-        return self._down
-
-
-class Character:
-    def __init__(self, _id, _x, _y):
-        self.id = _id
-        self.point = Point(_x, _y)
-
-    def x(self):
-        return self.point.x
-
-    def y(self):
-        return self.point.y
-
-
 class Item:
     def __init__(self, _x, _y):
         self.point = Point(_x, _y)
