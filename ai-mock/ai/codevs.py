@@ -2,16 +2,6 @@
 
 import sys
 from ai.point import Point
-
-directions = [Point(-1, 0), Point(0, -1), Point(0, 1), Point(1, 0), Point(0, 0)]
-direction_to_allow = {
-    Point(-1, 0): "^",
-    Point(0, -1): "<",
-    Point(0, 1): ">",
-    Point(1, 0): "v",
-    Point(0, 0): " ",
-    }
-
 ###
 
 PLAYER = 0

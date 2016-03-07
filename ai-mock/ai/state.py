@@ -10,6 +10,7 @@ class State:
         self.souls = set()
         self.skills = []
         self.exceptions = set()
+        self.steps = [[],[]]
 
     def start(self):
         self.clear_dog()
@@ -38,6 +39,9 @@ class State:
 
     def set_skills(self, skills):
         self.skills = skills
+        
+    def dist_to_ninjas(self, point):
+        return set([ninja.point.dist(point) for ninja in self.ninjas])
 
     def dist_to_soul(self, point, exceptions):
         return min([point.dist(s) for s in self.souls

@@ -5,15 +5,15 @@ class Controller:
         self.states = [State(), State()]
         self.brain = Brain()
 
-    def think(self, ninja_id):
-        return self.brain.simulate(ninja_id, self.states[0])
+    def think(self):
+        return self.brain.simulate(self.states[0])
 
     def is_pinch(self, ninja_id):
         ninja = self.states[PLAYER].ninjas[ninja_id]
         state = self.states[PLAYER]
         cnt = 0
         block = None
-        for d in directions:
+        for d in Direction.directions:
             p = ninja.point + d
             p2 = p + d
             if p in state.dog_points:

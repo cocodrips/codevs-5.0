@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+
 class Point:
     def __init__(self, y, x):
         self.y = int(y)
@@ -15,6 +16,16 @@ class Point:
         return Point(self.y + other.y, self.x + other.x)
 
     def __repr__(self):
+        arrows = {
+            Point(-1, 0): "^",
+            Point(0, -1): "<",
+            Point(0, 1): ">",
+            Point(1, 0): "v",
+            Point(0, 0): " ",
+        }
+        if self in arrows:
+            return arrows[self]
+        
         return "P({}, {})".format(self.y, self.x)
 
     def dist(self, other):
