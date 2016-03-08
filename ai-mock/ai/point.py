@@ -27,6 +27,11 @@ class Point:
             return arrows[self]
         
         return "P({}, {})".format(self.y, self.x)
+    
+    def __lt__(self, other):
+        if self.y == other.y:
+            return self.x < other.x
+        return self.y < other.y
 
     def dist(self, other):
         return abs(self.y - other.y) + abs(self.x - other.x)

@@ -1,4 +1,4 @@
-from ai import Point, Character
+from ai import *
 
 class State:
     def __init__(self):
@@ -65,3 +65,20 @@ class State:
                         if self.field[point.y + r][point.x + c].is_block:
                             return Point(point.y + r, point.x + c)
         return None
+    
+    def dump_field(self):
+        for r in range(ROW):
+            for c in range(COL):
+                w = ' '
+                if self.field[r][c].is_wall:
+                    w = 'W'
+                if self.field[r][c].is_block:
+                    w = 'O'
+                if Point(r, c) in self.dog_points:
+                    w = 'X'
+                if Point(r, c) == self.ninjas[0].point:
+                    w = '1'
+                if Point(r, c) == self.ninjas[1].point:
+                    w = '2'
+                print (w, end="")
+            print ("")

@@ -1,6 +1,7 @@
 from ai import *
 import copy
-import queue
+from queue import PriorityQueue, Queue
+
 
 class Brain:
     def __init__(self):
@@ -8,7 +9,7 @@ class Brain:
         :type state: State
         """
         self.states = [None, None]
-        
+
     @property
     def state(self):
         return self.states[PLAYER]
@@ -19,9 +20,9 @@ class Brain:
         :return: Point
         """
         field = state.field
-        
+
         visited = set()
-        search_queue = queue.Queue()
+        search_queue = Queue()
         search_queue.put((ninja_point, 0))
         if ninja_point in state.souls:
             return ninja_point, 0
@@ -29,7 +30,7 @@ class Brain:
         visited.add(ninja_point)
 
         while not search_queue.empty():
-            point, step = search_queue.get() 
+            point, step = search_queue.get()
             for direction in Direction.directions:
                 next = point + direction
 
@@ -49,7 +50,7 @@ class Brain:
 
     def get_dist_to_point(self, me, target, field):
         visited = set()
-        search_queue = queue.Queue()
+        search_queue = Queue()
         search_queue.put((me, 0))
         visited.add(me)
         if me == target:
@@ -95,33 +96,33 @@ class Brain:
         """
         if not field:
             field = self.state.field
-        search_queue = queue.Queue()    
+        search_queue = queue.Queue()
         visited = set()
-            
+
         search_queue.put((me, []))
         visited.add(me)
         if me == target:
             return me, []
-            
+
         while not search_queue.empty():
             point, step = search_queue.get()
             for direction in Direction.directions:
                 next = point + direction
-    
+
                 if next in visited:
                     continue
-                    
+
                 if not field[next.y][next.x].is_empty:
                     continue
-    
+
                 if next == target:
                     return next, step
-                    
+
                 step.append(next)
                 search_queue.put((next, step))
 
                 visited.add(next)
-    
+
         return None
 
 
@@ -194,13 +195,12 @@ class Brain:
 
             s, ds, soul, exc = self.check_next(ninja_id, field, next_pos, depth - 1, score,
                                                base_directions + [direction], new_nearest_soul, exceptions)
-            debug (next_pos.__repr__(), str(s), ds.__repr__())
+            debug(next_pos.__repr__(), str(s), ds.__repr__())
             if s > best_score:
                 best_score = s
                 best_directions = ds
                 best_nearest_soul = soul
                 best_exceptions = exc
-
 
         return best_score, best_directions, best_nearest_soul, best_exceptions
 
@@ -215,67 +215,75 @@ class Brain:
         cell = state.field[next_pos.y][next_pos.x]
         if cell.is_wall:
             return False
-        
+
         if cell.is_block:
             if not can_move_block:
                 return False
-            
+
             next_block_pos = next_pos + direction
             next_block_cell = state.field[next_block_pos.y][next_block_pos.x]
             if not next_block_cell.is_empty:
                 return False
             if 0 in state.dist_to_ninjas(next_block_pos):
                 return False
-        
+
             # 犬がいるときもだめ
             next_block_cell.type = Cell.BLOCK
             cell.type = Cell.EMPTY
 
         return True
-    
+
     def move(self, state, me, direction):
         next_pos = me + direction
         cell = state.field[next_pos.y][next_pos.x]
         if (cell.is_block):
             next_block_pos = next_pos + direction
             next_block_cell = state.field[next_block_pos.y][next_block_pos.x]
-        
+
             next_block_cell.type = Cell.BLOCK
             cell.type = Cell.EMPTY
         return next_pos
 
 
     # 次の魂への距離
-    def get_soul_dist_score(self, ninja_id, state):
-        soul, dist = self.get_nearest_soul(state, state.ninjas[ninja_id].point, [])
+    def get_soul_dist_score(self, pos, state):
+        soul, dist = self.get_nearest_soul(state, pos, [])
         return (100 / dist)
 
-    def get_on_soul_score(self, point, state):
+    def get_on_soul_score(self, point, state, change_state=False):
         if point in state.souls:
-            state.souls.remove(point)
+            if change_state:
+                state.souls.remove(point)
             return 100
         return 0
 
-    def get_dog_score(self, state):
+    def get_dog_score(self, ninja_id, state):
         score = 0
-        dogs = self.get_near_dog_list(state.dogs, state.ninjas[0].point, state.field)
+        dogs = self.get_near_dog_list(state.dogs, state.ninjas[ninja_id].point, state.field)
         score -= sum([3 - dog for dog in dogs]) * 50
         for dog in dogs:
             if dog < 2:
                 score -= 10000
-                
-        dogs = self.get_near_dog_list(state.dogs, state.ninjas[1].point, state.field)
-        score -= sum([3 - dog for dog in dogs]) * 50
-        for dog in dogs:
-            if dog < 2:
-                score -= 10000 
 
         return score
 
 
-    def get_score(self, _state):
-        pass
-    
+    def get_destination_score(self, _state, step, ninja_pos, ninja_id):
+        destinations = []
+        for d in Path.paths[step]:
+            p = ninja_pos + d
+            if not is_valid_point(p):
+                continue
+            if _state.field[p.y][p.x].is_wall:
+                continue
+
+            dog_score = self.get_dog_score(ninja_id, _state)
+            soul_score = self.get_soul_dist_score(ninja_pos, _state)
+            relay_soul_score = max([self.get_on_soul_score(point, _state) for point in Path.relay_points[step][d]])
+            destinations.append((dog_score + soul_score + relay_soul_score, d))
+
+        return sorted(destinations, reverse=True)
+
     def simulate_next_turn(self, _state, step, _score, _dog_score):
         """
         :type _state: State
@@ -284,10 +292,10 @@ class Brain:
         best_state = _state
         if step == 0:
             return best_score, best_state
-        
+
         state = copy.deepcopy(_state)
-        
-        for n0_direction_1 in Direction.directions:    
+
+        for n0_direction_1 in Direction.directions:
             if not self.can_move(state, state.ninjas[0].point, n0_direction_1):
                 continue
             for n1_direction_1 in Direction.directions:
@@ -295,7 +303,7 @@ class Brain:
                     continue
 
                 next_state = copy.deepcopy(state)
-                
+
                 # ninja0,1の方向決定。移動。
                 next_state.ninjas[0].point = self.move(state, next_state.ninjas[0].point, n0_direction_1)
                 next_state.ninjas[1].point = self.move(state, next_state.ninjas[1].point, n1_direction_1)
@@ -303,10 +311,10 @@ class Brain:
                 next_state.steps[0].append(n0_direction_1)
                 next_state.steps[1].append(n1_direction_1)
                 # 犬判定
-                
+
                 # score
                 score = _score
-                
+
                 # 魂にのってるかどうか
                 def get_on_soul_score(point, state):
                     if point in next_state.souls:
@@ -316,12 +324,10 @@ class Brain:
 
                 score += self.get_on_soul_score(next_state.ninjas[0].point, next_state)
                 score += self.get_on_soul_score(next_state.ninjas[1].point, next_state)
-                
 
                 score += self.get_soul_dist_score(0, next_state)
                 score += self.get_soul_dist_score(1, next_state)
- 
-                
+
                 if step == 1:
                     score += self.get_dog_score(next_state)
 
@@ -329,28 +335,110 @@ class Brain:
                 if best_score < __score:
                     best_score = __score
                     best_state = __state
-                    
-        return best_score, best_state
-                
-                                     
 
+        return best_score, best_state
+
+
+    def simulate_next_turn_dog(self, state):
+        """
+        state: dog_points, dogsが変更される
+        """
+
+        class NinjaPoint:
+            """
+            PriorityQueueに入れる用
+            """
+
+            def __init__(self, dist, point):
+                self.step = dist
+                self.point = point
+
+            def __lt__(self, other):
+                if self.step == other.step:
+                    return self.point < other.point
+                return self.step < other.step
+
+        steps_to_ninja = [[INF for _ in range(COL)] for _ in range(ROW)]        
+        visited = set()
+
+        queue = PriorityQueue()
+
+        queue.put(NinjaPoint(0, state.ninjas[0].point))
+        visited.add(state.ninjas[0].point)
+
+        queue.put(NinjaPoint(0, state.ninjas[1].point))
+        visited.add(state.ninjas[1].point)
+
+        while not queue.empty():
+            q = queue.get()
+            steps_to_ninja[q.point.y][q.point.x] = q.step
+            
+            for direction in Direction.directions:
+                point = q.point + direction
+                if not state.field[point.y][point.x].is_empty:
+                    continue
+
+                if point not in visited:
+                    visited.add(point)
+                    queue.put(NinjaPoint(q.step + 1, point))
+        
+        new_dogs = {}
+        new_dog_points = set()
+        
+        for dog in state.dogs.values():
+            new_dog = copy.deepcopy(dog)
+            best_direction = Direction.directions[4]
+            best_step = INF
+            for direction in Direction.directions:
+                point = dog.point + direction
+                step = steps_to_ninja[point.y][point.x]
+                if point in new_dog_points:
+                    continue
+                if step < best_step:
+                    best_direction = direction
+                    best_step = step
+                
+            new_dog.point += best_direction
+            new_dog_points.add(new_dog.point)
+            new_dogs[new_dog.point] = new_dog
+    
+        state.dogs = new_dogs
+        state.dog_points = new_dog_points
+        return state
+
+
+    def get_destination_scores(self, _state):
+        step = 2
+        # state = copy.deepcopy(_state)        
+        # state = self.simulate_next_turn_dog(state)
+
+        destinations0 = self.get_destination_score(_state, step, _state.ninjas[0].point, 0)
+        destinations1 = self.get_destination_score(_state, step, _state.ninjas[1].point, 1)
+        # for score0, dest0 in destinations0:
+        #     for score1, dest1 in destinations1:
+        #         pass # TODO:明日書く
+        #         
+        # print (destinations0)
+        # print (destinations1)
+        return (Path.paths[step][destinations0[0][1]][0], Path.paths[step][destinations1[0][1]][0])
 
     def get_next_turn(self, _state):
-        dog_score = self.get_dog_score(_state)
-        return self.simulate_next_turn(_state, 2, 0, dog_score)
-        
-        
+        return self.get_destination_scores(_state)
+        # dog_score = self.get_dog_score(_state)
+        # return self.simulate_next_turn(_state, 2, 0, dog_score)
+
+
     def simulate(self, state):
         """
         :type state: State
         """
         return self.get_next_turn(state)
         # ninja = state.ninjas[ninja_id]
-    #     score, _directions, target_soul, exceptions = self.check_next(ninja_id, state.field, ninja.point, 2,
-    #                                                                   0, [], None, self.states[0].exceptions)
-    #     exceptions.add(target_soul)
-    #     self.states[ninja_id].exceptions = exceptions
-    # 
-    # 
-    #     return _directions
-    # 
+        # score, _directions, target_soul, exceptions = self.check_next(ninja_id, state.field, ninja.point, 2,
+        #                                                                   0, [], None, self.states[0].exceptions)
+        #     exceptions.add(target_soul)
+        #     self.states[ninja_id].exceptions = exceptions
+        # 
+        # 
+        #     return _directions
+        # 

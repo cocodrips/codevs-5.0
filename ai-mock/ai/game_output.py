@@ -21,9 +21,9 @@ def main_output(controller):
     else:
         print(2)
     
-    __score, __state = controller.think()
-    print(''.join([direction_to_word(d) for d in __state.steps[0]]))
-    print(''.join([direction_to_word(d) for d in __state.steps[1]]))
+    paths = controller.think()
+    print(''.join([direction_to_word(d) for d in paths[0]]))
+    print(''.join([direction_to_word(d) for d in paths[1]]))
     sys.stdout.flush()
     
 
