@@ -46,10 +46,17 @@ class State:
     def dist_to_ninjas(self, point):
         return set([ninja.point.dist(point) for ninja in self.ninjas])
 
-    def dist_to_soul(self):
-        if self.steps_from_ninja:
-            return sorted([self.steps_from_ninja[soul.y][soul.x] 
-                           for soul in self.souls if self.field[soul.y][soul.x].is_empty])
+    def dist_to_soul(self, exceptions):
+        if not self.steps_from_ninja:
+            return []
+        souls_dist = []
+        for soul in self.souls:
+            if not self.field[soul.y][soul.x].is_empty:
+                continue
+            if soul in exceptions:
+                continue
+            souls_dist.append(self.steps_from_ninja[soul.y][soul.x])
+        return sorted(souls_dist)
 
     def dist_to_dog(self, point):
         if not self.dog_points:

@@ -394,15 +394,17 @@ class Brain:
         _field = copy.deepcopy(state.field)
         best_score = -INF
         best_relay_point = None
+        best_soul_point = None  
         
         for direction in Path.relay_points[2][dest_path]: #step
             state.field = copy.deepcopy(_field)
             score = 0
+            soul_point = None
             if not self.can_move(state, me, direction):
                 continue
             me = self.move(state, me, direction)
             if me in state.souls:
-                score += 100        
+                soul_point = me
             
             next_direction = dest_path - direction
             if not self.can_move(state, me, next_direction):
@@ -412,8 +414,9 @@ class Brain:
             if best_score < score:
                 best_score = score
                 best_relay_point = direction
+                best_soul_point = soul_point
             
-        return best_relay_point, best_score
+        return best_relay_point, best_soul_point
 
 
     def get_best_destination_score(self, _state):
@@ -422,7 +425,7 @@ class Brain:
         :type state: State 
         """
         _state.set_steps_from_ninja()
-        base_soul_point = sum(_state.dist_to_soul()[:2])
+        # base_soul_point = sum(_state.dist_to_soul()[:2])
         step = 2
 
         best_score = -INF
@@ -444,28 +447,30 @@ class Brain:
                 self.set_next_turn_dog(state)
                 
                 score += self.get_dog_score(state)
-                dist_to_soul = state.dist_to_soul()
-                dest_soul_point = sum(dist_to_soul[:2])
-                if dest_soul_point < base_soul_point:
-                    score += 100
-                    
-                point0, score0 = self.try_all_relay_point(state,
+                
+                point0, soul0 = self.try_all_relay_point(state,
                                                           _state.ninjas[0].point, d0)
                 if not point0:
                     continue
 
-                point1, score1 = self.try_all_relay_point(state,
+                point1, soul1 = self.try_all_relay_point(state,
                                                           _state.ninjas[1].point, d1)
                 if not point1:
                     continue
                     
-                score += score0
-                score += score1
+                souls = {soul0, soul1}
+                souls.remove(None)
+                
+                score += len(list(souls)) * Evaluation.SOUL_GET_SCORE
+                dist_to_soul = state.dist_to_soul(souls)
+                for dist in dist_to_soul[:4]:
+                    score += Evaluation.SOUL_DIST_SCORE(dist)
+
                 # print (score, [point0, d0-point0], [point1, d1-point1]) 
                 if best_score < score:
                     best_score = score
-                    best_paths = [[point0, d0], [point1, d1]]
-                
+                    best_paths = [[point0, d0-point0], [point1, d1-point1]]
+        # print (best_score)
         return best_paths
 
     def simulate(self, state):

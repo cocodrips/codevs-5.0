@@ -18,8 +18,15 @@ class Evaluation:
     DOG_STEP_THRESHOLD = 5
     DOG_DIST_SCORE = lambda dist: -1000 if dist == 0 else -100 / dist
     DOG_DIRECTION_SCORE = lambda dir_num: -1 * pow(5, dir_num)
+    SOUL_GET_SCORE = 100
     
-    
+    @staticmethod
+    def SOUL_DIST_SCORE(dist):
+        if dist == 0:
+            return Evaluation.SOUL_GET_SCORE 
+        return Evaluation.SOUL_GET_SCORE / 2 / dist
+
+
 def is_valid_point(p):
     return 0 <= p.y < ROW and 0 <= p.x < COL
 
