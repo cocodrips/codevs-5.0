@@ -15,6 +15,9 @@ class Point:
     def __add__(self, other):
         return Point(self.y + other.y, self.x + other.x)
 
+    def __sub__(self, other):
+        return Point(self.y - other.y, self.x - other.x)
+    
     def __repr__(self):
         arrows = {
             Point(-1, 0): "^",

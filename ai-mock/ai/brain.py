@@ -96,7 +96,7 @@ class Brain:
         """
         if not field:
             field = self.state.field
-        search_queue = queue.Queue()
+        search_queue = Queue()
         visited = set()
 
         search_queue.put((me, []))
@@ -338,49 +338,13 @@ class Brain:
 
         return best_score, best_state
 
+    
 
-    def simulate_next_turn_dog(self, state):
+    def set_next_turn_dog(self, state):
         """
         state: dog_points, dogsが変更される
         """
-
-        class NinjaPoint:
-            """
-            PriorityQueueに入れる用
-            """
-
-            def __init__(self, dist, point):
-                self.step = dist
-                self.point = point
-
-            def __lt__(self, other):
-                if self.step == other.step:
-                    return self.point < other.point
-                return self.step < other.step
-
-        steps_to_ninja = [[INF for _ in range(COL)] for _ in range(ROW)]        
-        visited = set()
-
-        queue = PriorityQueue()
-
-        queue.put(NinjaPoint(0, state.ninjas[0].point))
-        visited.add(state.ninjas[0].point)
-
-        queue.put(NinjaPoint(0, state.ninjas[1].point))
-        visited.add(state.ninjas[1].point)
-
-        while not queue.empty():
-            q = queue.get()
-            steps_to_ninja[q.point.y][q.point.x] = q.step
-            
-            for direction in Direction.directions:
-                point = q.point + direction
-                if not state.field[point.y][point.x].is_empty:
-                    continue
-
-                if point not in visited:
-                    visited.add(point)
-                    queue.put(NinjaPoint(q.step + 1, point))
+        steps_from_ninja = state.steps_from_ninja
         
         new_dogs = {}
         new_dog_points = set()
@@ -391,7 +355,7 @@ class Brain:
             best_step = INF
             for direction in Direction.directions:
                 point = dog.point + direction
-                step = steps_to_ninja[point.y][point.x]
+                step = steps_from_ninja[point.y][point.x]
                 if point in new_dog_points:
                     continue
                 if step < best_step:
@@ -404,41 +368,108 @@ class Brain:
     
         state.dogs = new_dogs
         state.dog_points = new_dog_points
+        state.steps_from_ninja = steps_from_ninja
         return state
 
+    def get_dog_score(self, state):
+        """
+        :type state:State
+        """
+        direction_score = [0, 0, 0, 0] # top, left, right, bottom
+        score = 0
+        for dog in state.dog_points:
+            step = state.steps_from_ninja[dog.y][dog.x]
+            if step > Evaluation.DOG_STEP_THRESHOLD:
+                continue
+            score += Evaluation.DOG_DIST_SCORE(step)
+            direction_score[0] += dog.y if dog.y > 0 else 0
+            direction_score[1] += dog.x if dog.y > 0 else 0
+            direction_score[2] += dog.x if dog.y < 0 else 0
+            direction_score[3] += dog.y if dog.y < 0 else 0
+        score += Evaluation.DOG_DIRECTION_SCORE(len([d for d in direction_score if d > 0]))
+        return score
+        
+            
+    def try_all_relay_point(self, state, me, dest_path):
+        _field = copy.deepcopy(state.field)
+        best_score = -INF
+        best_relay_point = None
+        
+        for direction in Path.relay_points[2][dest_path]: #step
+            state.field = copy.deepcopy(_field)
+            score = 0
+            if not self.can_move(state, me, direction):
+                continue
+            me = self.move(state, me, direction)
+            if me in state.souls:
+                score += 100        
+            
+            next_direction = dest_path - direction
+            if not self.can_move(state, me, next_direction):
+                continue
+            
+            # 目的の場所に行くことが可能
+            if best_score < score:
+                best_score = score
+                best_relay_point = direction
+            
+        return best_relay_point, best_score
 
-    def get_destination_scores(self, _state):
+
+    def get_best_destination_score(self, _state):
+        """
+        :type _state: State 
+        :type state: State 
+        """
+        _state.set_steps_from_ninja()
+        base_soul_point = sum(_state.dist_to_soul()[:2])
         step = 2
-        # state = copy.deepcopy(_state)        
-        # state = self.simulate_next_turn_dog(state)
 
-        destinations0 = self.get_destination_score(_state, step, _state.ninjas[0].point, 0)
-        destinations1 = self.get_destination_score(_state, step, _state.ninjas[1].point, 1)
-        # for score0, dest0 in destinations0:
-        #     for score1, dest1 in destinations1:
-        #         pass # TODO:明日書く
-        #         
-        # print (destinations0)
-        # print (destinations1)
-        return (Path.paths[step][destinations0[0][1]][0], Path.paths[step][destinations1[0][1]][0])
+        best_score = -INF
+        best_paths = []
+        for d0 in Path.paths[step]:
+            for d1 in Path.paths[step]:
+                score = 0
+                # 状態を上書きされないようコピー
+                state = copy.deepcopy(_state)
+                
+                state.ninjas[0].point += d0
+                state.ninjas[1].point += d1
+                if not is_inside_field(state.ninjas[0].point):
+                    continue
+                if not is_inside_field(state.ninjas[1].point):
+                    continue
+                    
+                state.set_steps_from_ninja()
+                self.set_next_turn_dog(state)
+                
+                score += self.get_dog_score(state)
+                dist_to_soul = state.dist_to_soul()
+                dest_soul_point = sum(dist_to_soul[:2])
+                if dest_soul_point < base_soul_point:
+                    score += 100
+                    
+                point0, score0 = self.try_all_relay_point(state,
+                                                          _state.ninjas[0].point, d0)
+                if not point0:
+                    continue
 
-    def get_next_turn(self, _state):
-        return self.get_destination_scores(_state)
-        # dog_score = self.get_dog_score(_state)
-        # return self.simulate_next_turn(_state, 2, 0, dog_score)
-
+                point1, score1 = self.try_all_relay_point(state,
+                                                          _state.ninjas[1].point, d1)
+                if not point1:
+                    continue
+                    
+                score += score0
+                score += score1
+                # print (score, [point0, d0-point0], [point1, d1-point1]) 
+                if best_score < score:
+                    best_score = score
+                    best_paths = [[point0, d0], [point1, d1]]
+                
+        return best_paths
 
     def simulate(self, state):
         """
         :type state: State
         """
-        return self.get_next_turn(state)
-        # ninja = state.ninjas[ninja_id]
-        # score, _directions, target_soul, exceptions = self.check_next(ninja_id, state.field, ninja.point, 2,
-        #                                                                   0, [], None, self.states[0].exceptions)
-        #     exceptions.add(target_soul)
-        #     self.states[ninja_id].exceptions = exceptions
-        # 
-        # 
-        #     return _directions
-        # 
+        return self.get_best_destination_score(state)

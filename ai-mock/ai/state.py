@@ -1,3 +1,5 @@
+from queue import PriorityQueue
+
 from ai import *
 
 class State:
@@ -11,6 +13,7 @@ class State:
         self.skills = []
         self.exceptions = set()
         self.steps = [[],[]]
+        self.steps_from_ninja = []
 
     def start(self):
         self.clear_dog()
@@ -43,9 +46,10 @@ class State:
     def dist_to_ninjas(self, point):
         return set([ninja.point.dist(point) for ninja in self.ninjas])
 
-    def dist_to_soul(self, point, exceptions):
-        return min([point.dist(s) for s in self.souls
-                    if s not in exceptions and self.field[s.y][s.x].is_empty])
+    def dist_to_soul(self):
+        if self.steps_from_ninja:
+            return sorted([self.steps_from_ninja[soul.y][soul.x] 
+                           for soul in self.souls if self.field[soul.y][soul.x].is_empty])
 
     def dist_to_dog(self, point):
         if not self.dog_points:
@@ -82,3 +86,44 @@ class State:
                     w = '2'
                 print (w, end="")
             print ("")
+            
+    def set_steps_from_ninja(self):
+        class NinjaPoint:
+            """
+            PriorityQueueに入れる用
+            """
+        
+            def __init__(self, dist, point):
+                self.step = dist
+                self.point = point
+        
+            def __lt__(self, other):
+                if self.step == other.step:
+                    return self.point < other.point
+                return self.step < other.step
+            
+        steps_from_ninja = [[INF for _ in range(COL)] for _ in range(ROW)]
+        visited = set()
+
+        queue = PriorityQueue()
+
+        queue.put(NinjaPoint(0, self.ninjas[0].point))
+        visited.add(self.ninjas[0].point)
+
+        queue.put(NinjaPoint(0, self.ninjas[1].point))
+        visited.add(self.ninjas[1].point)
+
+        while not queue.empty():
+            q = queue.get()
+            steps_from_ninja[q.point.y][q.point.x] = q.step
+
+            for direction in Direction.directions:
+                point = q.point + direction
+                if not self.field[point.y][point.x].is_empty:
+                    continue
+
+                if point not in visited:
+                    visited.add(point)
+                    queue.put(NinjaPoint(q.step + 1, point))
+        
+        self.steps_from_ninja = steps_from_ninja
