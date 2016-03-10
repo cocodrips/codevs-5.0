@@ -2,6 +2,7 @@ from queue import PriorityQueue
 
 from ai import *
 
+
 class State:
     def __init__(self):
         self.field = []
@@ -12,8 +13,40 @@ class State:
         self.souls = set()
         self.skills = []
         self.exceptions = set()
-        self.steps = [[],[]]
-        self.steps_from_ninja = []
+        self.steps = [[], []]
+        self.doppelganger = None
+        self._prev_ninjas = None
+        self._steps_from_ninja = None
+        self._steps_from_doppelganger = None
+        self._prev_doppel_point = None
+
+    @property
+    def steps_from_ninja(self):
+        """
+        忍者から各マスへの最短経路
+        """
+        ninjas_hash = hash(self.ninjas[0]) + hash(self.ninjas[1]) * 2
+        if (not self._prev_ninjas or 
+                ninjas_hash != self._prev_ninjas):
+            self._prev_ninjas = ninjas_hash
+            self._steps_from_ninja = self.steps_from_points([
+                self.ninjas[0].point,
+                self.ninjas[1].point
+            ])
+        return self._steps_from_ninja
+    
+    @property
+    def steps_from_doppelganger(self):
+        """
+        影武者から各マスへの距離
+        """
+        if not self.doppelganger:
+            return self.steps_from_ninja
+        if not self._prev_doppel_point or self._prev_doppel_point != self.doppelganger:
+            self._prev_doppel_point = self.doppelganger
+            self._steps_from_doppelganger = self.steps_from_points([self.doppelganger])
+        return self._steps_from_doppelganger
+            
 
     def start(self):
         self.clear_dog()
@@ -42,7 +75,7 @@ class State:
 
     def set_skills(self, skills):
         self.skills = skills
-        
+
     def dist_to_ninjas(self, point):
         return set([ninja.point.dist(point) for ninja in self.ninjas])
 
@@ -76,7 +109,7 @@ class State:
                         if self.field[point.y + r][point.x + c].is_block:
                             return Point(point.y + r, point.x + c)
         return None
-    
+
     def dump_field(self):
         for r in range(ROW):
             for c in range(COL):
@@ -91,42 +124,35 @@ class State:
                     w = '1'
                 if Point(r, c) == self.ninjas[1].point:
                     w = '2'
-                print (w, end="")
-            print ("")
-            
-    def set_steps_from_ninja(self, point=None):
+                print(w, end="")
+            print("")
+
+    def steps_from_points(self, points):
         class NinjaPoint:
             """
             PriorityQueueに入れる用
             """
-        
+
             def __init__(self, dist, point):
                 self.step = dist
                 self.point = point
-        
+
             def __lt__(self, other):
                 if self.step == other.step:
                     return self.point < other.point
                 return self.step < other.step
-            
-        steps_from_ninja = [[INF for _ in range(COL)] for _ in range(ROW)]
+
+        steps_from_points = [[INF for _ in range(COL)] for _ in range(ROW)]
         visited = set()
 
         queue = PriorityQueue()
-
-        if point:
+        for point in points:
             queue.put(NinjaPoint(0, point))
             visited.add(point)
-        else:
-            queue.put(NinjaPoint(0, self.ninjas[0].point))
-            visited.add(self.ninjas[0].point)
-    
-            queue.put(NinjaPoint(0, self.ninjas[1].point))
-            visited.add(self.ninjas[1].point)
 
         while not queue.empty():
             q = queue.get()
-            steps_from_ninja[q.point.y][q.point.x] = q.step
+            steps_from_points[q.point.y][q.point.x] = q.step
 
             for direction in Direction.directions:
                 point = q.point + direction
@@ -136,5 +162,5 @@ class State:
                 if point not in visited:
                     visited.add(point)
                     queue.put(NinjaPoint(q.step + 1, point))
-        
-        self.steps_from_ninja = steps_from_ninja
+
+        return steps_from_points

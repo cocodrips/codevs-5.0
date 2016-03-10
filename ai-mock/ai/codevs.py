@@ -16,7 +16,7 @@ raw_input = lambda: sys.stdin.readline().strip()
 
 class Evaluation:
     DOG_STEP_THRESHOLD = 5
-    DOG_DIST_SCORE = lambda dist: -1000 if dist == 0 else -100 / dist
+    DOG_DIST_SCORE = lambda dist: -10000 if dist == 0 else -100 / dist
     DOG_DIRECTION_SCORE = lambda dir_num: 0 #-1 * pow(2, dir_num)
     SOUL_GET_SCORE = 100
     DOPPEL_THRESHOLD = 50
