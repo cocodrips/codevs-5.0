@@ -14,14 +14,14 @@ def direction_to_word(point):
 
 
 def main_output(controller):
-    skill = controller.skill()
+    # skill = controller.skill()
+    
+    skill, paths = controller.think()
     if skill:
         print(3)
         print(*skill)
     else:
         print(2)
-    
-    paths = controller.think()
     print(''.join([direction_to_word(d) for d in paths[0]]))
     print(''.join([direction_to_word(d) for d in paths[1]]))
     sys.stdout.flush()

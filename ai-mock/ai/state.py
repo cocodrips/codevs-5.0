@@ -94,7 +94,7 @@ class State:
                 print (w, end="")
             print ("")
             
-    def set_steps_from_ninja(self):
+    def set_steps_from_ninja(self, point=None):
         class NinjaPoint:
             """
             PriorityQueueに入れる用
@@ -114,11 +114,15 @@ class State:
 
         queue = PriorityQueue()
 
-        queue.put(NinjaPoint(0, self.ninjas[0].point))
-        visited.add(self.ninjas[0].point)
-
-        queue.put(NinjaPoint(0, self.ninjas[1].point))
-        visited.add(self.ninjas[1].point)
+        if point:
+            queue.put(NinjaPoint(0, point))
+            visited.add(point)
+        else:
+            queue.put(NinjaPoint(0, self.ninjas[0].point))
+            visited.add(self.ninjas[0].point)
+    
+            queue.put(NinjaPoint(0, self.ninjas[1].point))
+            visited.add(self.ninjas[1].point)
 
         while not queue.empty():
             q = queue.get()

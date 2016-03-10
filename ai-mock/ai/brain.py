@@ -284,71 +284,16 @@ class Brain:
 
         return sorted(destinations, reverse=True)
 
-    def simulate_next_turn(self, _state, step, _score, _dog_score):
-        """
-        :type _state: State
-        """
-        best_score = _score
-        best_state = _state
-        if step == 0:
-            return best_score, best_state
-
-        state = copy.deepcopy(_state)
-
-        for n0_direction_1 in Direction.directions:
-            if not self.can_move(state, state.ninjas[0].point, n0_direction_1):
-                continue
-            for n1_direction_1 in Direction.directions:
-                if not self.can_move(state, state.ninjas[1].point, n1_direction_1):
-                    continue
-
-                next_state = copy.deepcopy(state)
-
-                # ninja0,1の方向決定。移動。
-                next_state.ninjas[0].point = self.move(state, next_state.ninjas[0].point, n0_direction_1)
-                next_state.ninjas[1].point = self.move(state, next_state.ninjas[1].point, n1_direction_1)
-
-                next_state.steps[0].append(n0_direction_1)
-                next_state.steps[1].append(n1_direction_1)
-                # 犬判定
-
-                # score
-                score = _score
-
-                # 魂にのってるかどうか
-                def get_on_soul_score(point, state):
-                    if point in next_state.souls:
-                        next_state.souls.remove(point)
-                        return 100
-                    return 0
-
-                score += self.get_on_soul_score(next_state.ninjas[0].point, next_state)
-                score += self.get_on_soul_score(next_state.ninjas[1].point, next_state)
-
-                score += self.get_soul_dist_score(0, next_state)
-                score += self.get_soul_dist_score(1, next_state)
-
-                if step == 1:
-                    score += self.get_dog_score(next_state)
-
-                __score, __state = self.simulate_next_turn(next_state, step - 1, score, _dog_score)
-                if best_score < __score:
-                    best_score = __score
-                    best_state = __state
-
-        return best_score, best_state
-
-    
 
     def set_next_turn_dog(self, state):
         """
         state: dog_points, dogsが変更される
         """
         steps_from_ninja = state.steps_from_ninja
-        
+
         new_dogs = {}
         new_dog_points = set()
-        
+
         for dog in state.dogs.values():
             new_dog = copy.deepcopy(dog)
             best_direction = Direction.directions[4]
@@ -361,11 +306,11 @@ class Brain:
                 if step < best_step:
                     best_direction = direction
                     best_step = step
-                
+
             new_dog.point += best_direction
             new_dog_points.add(new_dog.point)
             new_dogs[new_dog.point] = new_dog
-    
+
         state.dogs = new_dogs
         state.dog_points = new_dog_points
         state.steps_from_ninja = steps_from_ninja
@@ -375,7 +320,7 @@ class Brain:
         """
         :type state:State
         """
-        direction_score = [0, 0, 0, 0] # top, left, right, bottom
+        direction_score = [0, 0, 0, 0]  # top, left, right, bottom
         score = 0
         for dog in state.dog_points:
             step = state.steps_from_ninja[dog.y][dog.x]
@@ -388,15 +333,15 @@ class Brain:
             direction_score[3] += dog.y if dog.y < 0 else 0
         score += Evaluation.DOG_DIRECTION_SCORE(len([d for d in direction_score if d > 0]))
         return score
-        
-            
+
+
     def try_all_relay_point(self, state, me, dest_path):
         _field = copy.deepcopy(state.field)
         best_score = -INF
         best_relay_point = None
-        best_soul_point = None  
-        
-        for direction in Path.relay_points[2][dest_path]: #step
+        best_soul_point = None
+
+        for direction in Path.relay_points[2][dest_path]:  # step
             state.field = copy.deepcopy(_field)
             score = 0
             soul_point = None
@@ -405,26 +350,66 @@ class Brain:
             me = self.move(state, me, direction)
             if me in state.souls:
                 soul_point = me
-            
+
             next_direction = dest_path - direction
             if not self.can_move(state, me, next_direction):
                 continue
-            
+
             # 目的の場所に行くことが可能
             if best_score < score:
                 best_score = score
                 best_relay_point = direction
                 best_soul_point = soul_point
-            
+
         return best_relay_point, best_soul_point
 
+    def doppelganger(self, _state):
+        # ALL pattern
+        if _state.power < _state.skills[Skill.DoppelMe.value]:
+            return None
 
-    def get_best_destination_score(self, _state):
+        state = copy.deepcopy(_state)
+        state.set_steps_from_ninja()
+        _dog_score = self.get_dog_score(state)
+
+        best_dog_score = -INF
+        best_doppel_point = None
+
+        # 忍者からの距離を保存
+        _step_from_ninja = copy.deepcopy(state.steps_from_ninja)
+        for y in range(ROW):
+            for x in range(COL):
+                if not state.field[y][x].is_empty:
+                    continue
+
+                # 影分身へ向かって犬が移動
+                state.set_steps_from_ninja(Point(y, x))
+                self.set_next_turn_dog(state)
+
+                # 忍者からの距離へ戻す
+                state.steps_from_ninja = _step_from_ninja
+
+                dog_score = self.get_dog_score(state)
+
+                if best_dog_score < dog_score:
+                    best_dog_score = dog_score
+                    best_doppel_point = Point(y, x)
+                    return best_doppel_point  # TODO : DELETE test
+
+        if (best_dog_score - _dog_score) > Evaluation.DOG_STEP_THRESHOLD:
+            _state.power -= _state.skills[Skill.DoppelMe.value]
+            return best_doppel_point
+
+        return None
+
+
+    def get_best_destination_score(self, _state, doppel_point):
         """
         :type _state: State 
         :type state: State 
         """
-        _state.set_steps_from_ninja()
+        _state.set_steps_from_ninja(doppel_point)
+
         # base_soul_point = sum(_state.dist_to_soul()[:2])
         step = 2
 
@@ -435,41 +420,50 @@ class Brain:
                 score = 0
                 # 状態を上書きされないようコピー
                 state = copy.deepcopy(_state)
-                
+
+                # 忍者を移動済みにする
                 state.ninjas[0].point += d0
                 state.ninjas[1].point += d1
                 if not is_inside_field(state.ninjas[0].point):
                     continue
                 if not is_inside_field(state.ninjas[1].point):
                     continue
-                    
-                state.set_steps_from_ninja()
+
+                # 犬を移動させる
                 self.set_next_turn_dog(state)
                 
-                score += self.get_dog_score(state)
-                
+                # Doppel合ってもなくてもここから下はいっしょ
+                state.set_steps_from_ninja()
+                dog_point = self.get_dog_score(state)
+                score += dog_point
+
+
                 point0, soul0 = self.try_all_relay_point(state,
-                                                          _state.ninjas[0].point, d0)
+                                                         _state.ninjas[0].point, d0)
                 if not point0:
                     continue
 
                 point1, soul1 = self.try_all_relay_point(state,
-                                                          _state.ninjas[1].point, d1)
+                                                         _state.ninjas[1].point, d1)
                 if not point1:
                     continue
-                    
+
                 souls = {soul0, soul1}
-                souls.remove(None)
-                
-                score += len(list(souls)) * Evaluation.SOUL_GET_SCORE
+                if None in souls:
+                    souls.remove(None)
+
+                soul_point = 0
+                soul_point += len(list(souls)) * Evaluation.SOUL_GET_SCORE
                 dist_to_soul = state.dist_to_soul(souls)
                 for dist in dist_to_soul[:4]:
-                    score += Evaluation.SOUL_DIST_SCORE(dist)
+                    soul_point += Evaluation.SOUL_DIST_SCORE(dist)
 
-                # print (score, [point0, d0-point0], [point1, d1-point1]) 
+                score += soul_point
+                # print(int(score), "\t", int(soul_point), "\t",
+                #       int(dog_point), [point0, d0 - point0], [point1, d1 - point1], dist_to_soul)
                 if best_score < score:
                     best_score = score
-                    best_paths = [[point0, d0-point0], [point1, d1-point1]]
+                    best_paths = [[point0, d0 - point0], [point1, d1 - point1]]
         # print (best_score)
         return best_paths
 
@@ -477,4 +471,8 @@ class Brain:
         """
         :type state: State
         """
-        return self.get_best_destination_score(state)
+        doppel_point = self.doppelganger(state)
+        skill = None
+        if doppel_point:
+            skill = (Skill.DoppelMe.value, doppel_point.y, doppel_point.x)
+        return skill, self.get_best_destination_score(state, doppel_point)
