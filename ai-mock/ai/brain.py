@@ -8,57 +8,6 @@ class Brain:
         """
         :type state: State
         """
-        self.states = [None, None]
-
-
-    def get_near_dog_list(self, dog_points, player_point, field):
-        dists = []
-        for dog in dog_points:
-            if player_point.dist(dog) > 3:
-                continue
-            dist = self.get_dist_to_point(dog, player_point, field)
-            if dist <= 3:
-                dists.append(dist)
-
-        return dists
-
-    def path(self, me, target, field=None, is_avoid_dog=False):
-        """
-        :type state: State
-        :return: Point
-
-        """
-        if not field:
-            field = self.state.field
-        search_queue = Queue()
-        visited = set()
-
-        search_queue.put((me, []))
-        visited.add(me)
-        if me == target:
-            return me, []
-
-        while not search_queue.empty():
-            point, step = search_queue.get()
-            for direction in Direction.directions:
-                next = point + direction
-
-                if next in visited:
-                    continue
-
-                if not field[next.y][next.x].is_empty:
-                    continue
-
-                if next == target:
-                    return next, step
-
-                step.append(next)
-                search_queue.put((next, step))
-
-                visited.add(next)
-
-        return None
-
 
     def can_move(self, state, me, direction, can_move_block=True):
         """
@@ -99,29 +48,12 @@ class Brain:
             cell.type = Cell.EMPTY
         return next_pos
 
-
-    # 次の魂への距離
-    def get_soul_dist_score(self, pos, state):
-        soul, dist = self.get_nearest_soul(state, pos, [])
-        return (100 / dist)
-
     def get_on_soul_score(self, point, state, change_state=False):
         if point in state.souls:
             if change_state:
                 state.souls.remove(point)
             return 100
         return 0
-
-    def get_dog_score(self, ninja_id, state):
-        score = 0
-        dogs = self.get_near_dog_list(state.dogs, state.ninjas[ninja_id].point, state.field)
-        score -= sum([3 - dog for dog in dogs]) * 50
-        for dog in dogs:
-            if dog < 2:
-                score -= 10000
-
-        return score
-
 
     def get_destination_score(self, _state, step, ninja_pos, ninja_id):
         destinations = []
@@ -138,7 +70,6 @@ class Brain:
             destinations.append((dog_score + soul_score + relay_soul_score, d))
 
         return sorted(destinations, reverse=True)
-
 
     def set_next_turn_dog(self, state):
         """
@@ -312,8 +243,8 @@ class Brain:
                 score += dog_point
 
 
-                print(int(score), "\t", int(soul_point), "\t",
-                      int(dog_point), [point0, d0 - point0], [point1, d1 - point1], dist_to_soul)
+                # print(int(score), "\t", int(soul_point), "\t",
+                #       int(dog_point), [point0, d0 - point0], [point1, d1 - point1], dist_to_soul)
                 if best_score < score:
                     best_score = score
                     best_paths = [[point0, d0 - point0], [point1, d1 - point1]]

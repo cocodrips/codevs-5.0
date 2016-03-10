@@ -51,6 +51,7 @@ class State:
     def start(self):
         self.clear_dog()
         self.clear_soul()
+        self.doppelganger = None
         self.exceptions = set()
 
     def set_field(self, field):
