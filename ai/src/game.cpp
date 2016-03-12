@@ -1,6 +1,7 @@
 #include "codevs.h"
 #include "controller.h"
 #include "input.h"
+#include "output.h"
 
 class Game {
 public:
@@ -16,8 +17,9 @@ public:
 
         while (1) {
             Input::mainInput(&controller, cin);
-            controller.myState.dumpField(cerr);
-            controller.enemyState.dumpField(cerr);
+            Output::mainOutput(controller, cout);
+
+
 //            cout << 2 << endl;
 //            cout << "NN" << endl;
 //            cout << "NN" << endl;

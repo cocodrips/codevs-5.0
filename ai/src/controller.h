@@ -9,6 +9,7 @@ public:
     State enemyState;
 
     Controller();
+    void think(string *outSkillLine, string *outMyPath);
 };
 
 

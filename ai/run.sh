@@ -1,3 +1,3 @@
 cd `dirname $0`
-make
+gcc -std=c++11 src/*.cpp
 ./a.out

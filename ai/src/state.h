@@ -19,6 +19,8 @@ public:
     Point doppelganger;
     vector<Point> exceptions;
 
+    vector<Point> nextStep[NINJA_NUM];
+
 
     State();
 

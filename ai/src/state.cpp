@@ -10,6 +10,8 @@ void State::start() {
     clearSoul();
     doppelganger = Point();
     exceptions.clear();
+    nextStep[0].clear();
+    nextStep[1].clear();
 }
 
 void State::dumpField(ostream &cerr) {
