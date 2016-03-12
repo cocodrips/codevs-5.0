@@ -1,0 +1,42 @@
+### https://raw.github.com/github/gitignore/ecf9bac896e8e01d207838563c3c465d23cdc7a2/c++.gitignore
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+
+
+### https://raw.github.com/github/gitignore/ecf9bac896e8e01d207838563c3c465d23cdc7a2/Global/intellij.gitignore
+
+*.iml
+*.ipr
+*.iws
+.idea/
+
+
+##
+gtest/gtest
+CMakeFiles
+game
+test
+test.cpp
+
+
+### https://raw.github.com/github/gitignore/ecf9bac896e8e01d207838563c3c465d23cdc7a2/cmake.gitignore
+
+CMakeCache.txt
+CMakeFiles
+Makefile
+cmake_install.cmake
+install_manifest.txt
+
+

@@ -1,4 +1,4 @@
-#include "ai.cpp"
+#include "point.cpp"
 
 int main() {
     // AIの名前を出力

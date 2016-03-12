@@ -80,36 +80,10 @@ class State:
     def dist_to_ninjas(self, point):
         return set([ninja.point.dist(point) for ninja in self.ninjas])
 
-    def dist_to_soul(self, exceptions):
-        if not self.steps_from_ninja:
-            return []
-        souls_dist = []
-        for soul in self.souls:
-            if not self.field[soul.y][soul.x].is_empty:
-                continue
-            if soul in exceptions:
-                continue
-            souls_dist.append(self.steps_from_ninja[soul.y][soul.x])
-        return sorted(souls_dist)
-
-    def dist_to_dog(self, point):
-        if not self.dog_points:
-            return 100
-        return min([point.dist(dog_point) for dog_point in self.dog_points])
-
     def get_soul_under_block(self):
         for soul in self.souls:
             if self.field[soul.y][soul.x].is_block:
                 return soul
-
-    def get_nearest_block(self, point):
-        for i in range(1, 17):
-            for r in range(-i, i):
-                for c in range(-i, i):
-                    if 0 < point.y + r < len(self.field) and 0 < point.x + c < len(self.field[0]):
-                        if self.field[point.y + r][point.x + c].is_block:
-                            return Point(point.y + r, point.x + c)
-        return None
 
     def dump_field(self):
         for r in range(ROW):
