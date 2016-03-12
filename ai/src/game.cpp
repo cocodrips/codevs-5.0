@@ -17,12 +17,7 @@ public:
 
         while (1) {
             Input::mainInput(&controller, cin);
-            Output::mainOutput(controller, cout);
-
-
-//            cout << 2 << endl;
-//            cout << "NN" << endl;
-//            cout << "NN" << endl;
+            Output::mainOutput(&controller, cout);
         }
 
     }

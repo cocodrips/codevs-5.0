@@ -3,13 +3,22 @@
 
 #include "state.h"
 
-State::State() { }
+State::State() : ninjas(NINJA_NUM), nextStep(NINJA_NUM), doppelganger() {
+    field = vector<vector<Cell>>(Y);
+    REP(i, Y) {
+        field[i] = vector<Cell>(X);
+    }
+
+
+}
 
 void State::start() {
     clearDogInfo();
     clearSoul();
+
     doppelganger = Point();
     exceptions.clear();
+
     nextStep[0].clear();
     nextStep[1].clear();
 }
@@ -40,6 +49,13 @@ void State::dumpField(ostream &cerr) {
     }
 }
 
+set<int> State::distToNinja(const Point &pos) const {
+    set<int> dists;
+    dists.insert(ninjas[0].point.dist(pos));
+    dists.insert(ninjas[1].point.dist(pos));
+    return dists;
+}
+
 void State::clearDogInfo() {
     dogPoints.clear();
     dogs.clear();
@@ -47,6 +63,59 @@ void State::clearDogInfo() {
 
 void State::clearSoul() {
     souls.clear();
+}
+
+void State::setStepsToNinjas() {
+    vector<Point> ninjaPoints;
+    ninjaPoints.push_back(ninjas[0].point);
+    ninjaPoints.push_back(ninjas[1].point);
+    stepsToNinjas = stepsFromPoints(ninjaPoints);
+}
+
+void State::setStepsToDoppel(Point doppel) {
+    vector<Point> points;
+    points.push_back(doppel);
+    stepsToDopperl = stepsFromPoints(points);
+}
+
+vector<vector<int>> State::stepsFromPoints(vector<Point> points) {
+    vector<vector<int>> steps(Y);
+    REP (y, Y) {
+        steps[y] = vector<int>(X);
+        REP(x, X) {
+            steps[y][x] = INF;
+        }
+    }
+
+    set<Point> visited;
+    priority_queue<tuple<int, Point>, vector<tuple<int, Point>>, greater<tuple<int, Point>>> queue; //dist, point
+    for (Point p : points) {
+        queue.push(make_tuple(0, p));
+        visited.insert(p);
+    }
+
+    while (!queue.empty()) {
+        tuple<int, Point> q = queue.top();
+        queue.pop();
+
+        int step = get<0>(q);
+        Point point = get<1>(q);
+
+        steps[point.y][point.x] = step;
+
+        REP(i, DIRECTION_NUM) {
+            Point d = Direction::directions[i];
+            Point next = point + d;
+            if (!field[next.y][next.x].isEmpty()) continue;
+            if (visited.find(next) == visited.end()) {
+                visited.insert(next);
+                queue.push(make_tuple(step + 1, next));
+            }
+
+        }
+
+    }
+    return steps;
 }
 
 #endif

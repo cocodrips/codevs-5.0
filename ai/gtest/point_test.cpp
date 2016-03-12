@@ -17,3 +17,9 @@ TEST(PointTest, print) {
     Point p1 = Point(1, 1);
     EXPECT_EQ(p1.print(), "P(1, 1)");
 }
+
+TEST(PointTest, dist) {
+    Point p1 = Point(1, 1);
+    Point p2 = Point(3, 6);
+    EXPECT_EQ(p1.dist(p2), 7);
+}

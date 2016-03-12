@@ -8,7 +8,7 @@ namespace Output {
 char directionToWord(const Point &point);
 string pointsToWord(const vector<Point> &points);
 
-void mainOutput(Controller &controller, ostream &cout);
+void mainOutput(Controller *controller, ostream &cout);
 
 };
 

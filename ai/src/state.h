@@ -2,36 +2,50 @@
 #define AI_STATE_H
 
 #include "codevs.h"
+#include "point.h"
 #include "character.h"
 #include "cell.h"
+#include "direction.h"
 
 class State {
 public:
     int skillPower[Skill::Max];
     int skillUsed[Skill::Max];
     int power;
-    Character ninjas[NINJA_NUM];
-    Cell field[Y][X];
+    vector<Character> ninjas;
+    vector<vector<Cell>> field;
     set<Point> dogPoints;
-    map<Point, Character> dogs;
+    map<Point, Character>dogs;
     set<Point> souls;
 
     Point doppelganger;
     vector<Point> exceptions;
 
-    vector<Point> nextStep[NINJA_NUM];
-
-
+    vector<vector<Point> > nextStep;
+    vector<vector<int> > stepsToNinjas;
+    vector<vector<int> > stepsToDopperl;
     State();
+    void setStepsToNinjas();
 
-    void start() ;
+    void setStepsToDoppel(Point doppel);
 
-    void dumpField(ostream &cerr) ;
+
+
+
+    void start();
+
+    void dumpField(ostream &cerr);
+
+    set<int> distToNinja(const Point &pos) const;
+
+    vector<vector<int>> stepsFromPoints(vector<Point> points);
 
 private:
-    void clearDogInfo() ;
+    void clearDogInfo();
 
-    void clearSoul() ;
+    void clearSoul();
+
+
 };
 
 

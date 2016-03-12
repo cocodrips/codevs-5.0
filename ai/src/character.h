@@ -5,11 +5,13 @@
 class Character {
 public:
     Point point;
+    int id;
     Character();
 
-    Character(int id, int y, int x);
+    Character(int _id, int y, int x);
 
     bool operator==(const Character &other) const;
+    bool operator<(const Character &other) const;
 };
 
 #endif //AI_CHARACTER_H

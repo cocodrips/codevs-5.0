@@ -9,10 +9,5 @@ TEST(OutputTest, output_no_skill) {
     controller.myState.nextStep[0].push_back(Point(1, 0));
     controller.myState.nextStep[0].push_back(Point(0, 1));
     stringstream ss;
-    Output::mainOutput(controller, ss);
-    cout << ss.str() << endl;
-    EXPECT_EQ(ss.str(), "2\n"
-            "DR\n"
-            "\n");
 
 }

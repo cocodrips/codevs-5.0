@@ -89,7 +89,7 @@ class Brain:
             for direction in Direction.directions:
                 point = dog.point + direction
                 step = steps_from_ninja[point.y][point.x]
-                if point in new_dog_points:
+                if point in new_dog_points: 
                     continue
                 if step < best_step:
                     best_direction = direction

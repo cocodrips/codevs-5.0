@@ -2,6 +2,7 @@
 #define AI_CONTROLLER_H
 
 #include "state.h"
+#include "brain.h"
 
 class Controller {
 public:
@@ -9,8 +10,9 @@ public:
     State enemyState;
 
     Controller();
-    void think(string *outSkillLine, string *outMyPath);
-};
 
+    void think(string *outSkill,
+               vector<Point> *outPath0, vector<Point> *outPath1);
+};
 
 #endif //AI_CONTROLLER_H

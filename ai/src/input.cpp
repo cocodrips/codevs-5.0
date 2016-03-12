@@ -28,7 +28,7 @@ void playerInput(State *state, istream& cin) {
     cin >> n;
     REP (c, n) {
         cin >> i >> y >> x;
-        state->ninjas[c] = Character(i, y, x);
+        state->ninjas[i] = Character(i, y, x);
     }
 
     // 犬情報

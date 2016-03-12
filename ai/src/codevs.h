@@ -1,12 +1,15 @@
 #ifndef AI_CODEVS
 #define AI_CODEVS
 
+//#define DEBUG
 #include "base.h"
+#include "evaluation.h"
 
 const int INF = 10000000;
 const int Y = 17;
 const int X = 14;
 const int NINJA_NUM = 2;
+const int DIRECTION_NUM = 5;
 
 namespace evaluation {
 

@@ -39,6 +39,10 @@ bool Point::operator<(const Point &other) const {
     return y < other.y;
 }
 
+int Point::dist(const Point &other) const {
+    return abs(y - other.y) + abs(x - other.x);
+}
+
 string Point::print() const {
     if (abs(x) + abs(y) == 1) {
         if (x == 1) return "→";
@@ -47,4 +51,8 @@ string Point::print() const {
         if (y == -1) return "↑";
     }
     return "P(" + to_string(y) + ", " + to_string(x) + ")";
+}
+
+bool Point::isInsideField() {
+    return 0 <= y && y < Y && 0 <= x && x < X;
 }

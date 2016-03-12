@@ -17,9 +17,14 @@ string Output::pointsToWord(const vector<Point> &points) {
     return joined;
 }
 
-void Output::mainOutput(Controller &controller, ostream &cout) {
+void Output::mainOutput(Controller *controller, ostream &cout) {
     cout << 2 << endl;
-
-    cout << pointsToWord(controller.myState.nextStep[0]) << endl;
-    cout << pointsToWord(controller.myState.nextStep[1]) << endl;
+    string skill;
+    vector<Point> path0;
+    vector<Point> path1;
+    controller->think(&skill, &path0, &path1);
+    int size0 = path0.size();
+    int size1 = path1.size();
+    cout << pointsToWord(path0) << endl;
+    cout << pointsToWord(path1) << endl;
 }

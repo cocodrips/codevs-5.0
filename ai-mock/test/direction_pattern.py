@@ -15,26 +15,30 @@ def get_all_destinaton(n):
 step = 2
 
 for dest, paths in get_all_destinaton(step).items():
-    print("Point(", dest.y, ",", dest.x, "): [", end="")
+    print("{Point(", dest.y, ",", dest.x, "), {", end="")
     for path in paths:
-        print("\t[", end="")
+        print("\t{", end="")
         for d in path:
+            if d == Point(0, 0):
+                continue
             print("Point(", d.y, ",", d.x, "),", end="")
-        print("\t],", end="")
-    print("],")
+        print("},", end="")
+    print("}},")
 
 
 # Relay point 
-for dest, paths in get_all_destinaton(step).items():
-    print("Point(", dest.y, ",", dest.x, "): {", end="")
-    s = set()
-    for path in paths:
-        for d in path[:-1]:
-            s.add(d)
-
-    if Point(0,0) in s:
-        s.remove(Point(0,0))
-
-    for d in s:
-        print("Point(", d.y, ",", d.x, "),", end="") 
-    print("},")
+# for dest, paths in get_all_destinaton(step).items():
+#     print("{Point(", dest.y, ",", dest.x, "), {", end="")
+#     s = set()
+#     for path in paths:
+#         s.add(path[:-1])
+#     # 
+#     # if Point(0,0) in s:
+#     #     s.remove(Point(0,0))
+# 
+#     for p in s:
+#         print("{", end="")
+#         for d in p:
+#             print("Point(", d.y, ",", d.x, "),", end="")
+#         print("},", end="")
+#     print("}},")

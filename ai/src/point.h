@@ -17,7 +17,9 @@ public:
     Point &operator+=(const Point &other);
     Point operator-(const Point &other) const;
     bool operator<(const Point &other) const;
+    int dist(const Point &other) const;
     string print() const;
+    bool isInsideField();
 
 
 };

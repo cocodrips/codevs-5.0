@@ -13,7 +13,6 @@ public:
     static const Point directions[5];
 
     Direction();
-
 };
 
 
