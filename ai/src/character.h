@@ -6,6 +6,7 @@ class Character {
 public:
     Point point;
     int id;
+    int dist;
     Character();
 
     Character(int _id, int y, int x);

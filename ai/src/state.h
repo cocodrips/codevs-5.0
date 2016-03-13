@@ -39,6 +39,8 @@ public:
     set<int> distToNinja(const Point &pos) const;
 
     vector<vector<int>> stepsFromPoints(vector<Point> points);
+    void dumpStepsToNinjas(ostream &cerr);
+    void dumpStepsToDoppel(ostream &cerr);
 
 private:
     void clearDogInfo();

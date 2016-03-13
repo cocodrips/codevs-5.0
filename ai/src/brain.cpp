@@ -2,6 +2,7 @@
 
 bool Brain::canMove(const State &state, const Point me, const Point direction) {
     Point nextPos = me + direction;
+    if (!nextPos.isInsideField()) return false;
     Cell cell = state.field[nextPos.y][nextPos.x];
 
     if (cell.isWall()) return false;
@@ -12,7 +13,7 @@ bool Brain::canMove(const State &state, const Point me, const Point direction) {
 
         // 忍者のマスに石が行くなら駄目
         set<int> dists = state.distToNinja(nextBlock);
-        if (dists.find(0) != dists.end()) return false;
+//        if (dists.find(0) != dists.end()) return false;
     }
     return true;
 }
@@ -31,6 +32,28 @@ Point Brain::move(State *state, const Point me, const Point direction) {
     return nextPos;
 }
 
+int Brain::moveToDestination(State *state, Point *outMe, const vector<Point> &path,
+                             vector<Point> *outGetSouls, const set<Point> &souls) {
+    int score = 0;
+    for (Point p : path) {
+        auto field = state->field;
+
+        if (!canMove(*state, *outMe, p)) {
+            return -INF;
+        }
+        *outMe = move(state, *outMe, p);
+
+        // 中継地点にソウルがあるか
+        if (state->souls.find(*outMe) != state->souls.end()) {
+            if (souls.find(*outMe) == souls.end()) {
+                outGetSouls->push_back(*outMe);
+                score += Evaluation::soulGetScore;
+            }
+        }
+    }
+    return score;
+}
+
 void Brain::setNextDogs(State *state) {
     vector<vector<int> > stepsFromNinja = state->stepsToNinjas;
     if (state->doppelganger.isInsideField()) {
@@ -44,14 +67,12 @@ void Brain::setNextDogs(State *state) {
 
     set<Character> idSortDogSet;
     for (pair<Point, Character> dogPair : state->dogs) {
-        Character &dog = dogPair.second; // copy
+        Character dog = dogPair.second; // copy
+        dog.dist = stepsFromNinja[dog.point.y][dog.point.x];
         idSortDogSet.insert(dog);
     }
 
-
-    for (Character _dog : idSortDogSet) {
-        Character dog = _dog; // copy
-
+    for (Character dog : idSortDogSet) {
         Point bestDirection = Direction::directions[4];
         int bestStep = INF;
 
@@ -76,6 +97,8 @@ void Brain::setNextDogs(State *state) {
     state->dogPoints = newDogPoints;
 }
 
+
+
 int Brain::getDogScore(const State &state) {
     // int directionScore[4] = {};
     int score = 0;
@@ -88,33 +111,19 @@ int Brain::getDogScore(const State &state) {
 
 vector<Point> Brain::tryAllRelayPoint(const State &_state,
                                       const Point &_me,
-                                      const Point &direction, int step,
+                                      const Point &destination, int step,
                                       set<Point> *outGetSouls) {
 
-    State state = _state;
     vector<Point> bestPath;
     vector<Point> bestGetSouls;
     int bestScore = -INF;
-
-    for (vector<Point> path : Path::destinations[2].at(direction)) {
+    for (vector<Point> path : Path::destinations[2].at(destination)) {
+        State state = _state;
         Point me = _me;
         int score = 0;
         vector<Point> getSouls;
-        for (Point p : path) {
-            auto field = state.field;
 
-            if (!canMove(state, me, p)) continue;
-            me = move(&state, me, p);
-
-            // 中継地点にソウルがあるか
-            if (state.souls.find(me) != state.souls.end()) {
-                if (outGetSouls->find(me) == outGetSouls->end()) {
-                    getSouls.push_back(me);
-                    score += Evaluation::soulGetScore;
-                }
-            }
-        }
-
+        score = moveToDestination(&state, &me, path, &getSouls, *outGetSouls);
         if (bestScore < score) {
             bestScore = score;
             bestPath = path;
@@ -128,10 +137,14 @@ vector<Point> Brain::tryAllRelayPoint(const State &_state,
 }
 
 
-void Brain::setBestPath(const State &_state, int step, vector<Point> *outPath0, vector<Point> *outPath1) {
-    int bestScore = -INF;
+int Brain::setBestPath(const State &_state, int step,
+                       vector<Point> *outPath0, vector<Point> *outPath1, int initScore) {
+    int bestScore = initScore;
     vector<Point> bestPath0;
     vector<Point> bestPath1;
+
+    State doppelState = _state;
+
 
     for (auto destPair0 : Path::destinations[step]) {
         for (auto destPair1 : Path::destinations[step]) {
@@ -148,33 +161,72 @@ void Brain::setBestPath(const State &_state, int step, vector<Point> *outPath0, 
             if (!state.ninjas[0].point.isInsideField()) continue;
             if (!state.ninjas[1].point.isInsideField()) continue;
 
+            if (!state.field[state.ninjas[0].point.y][state.ninjas[0].point.x].isEmpty()) continue;
+            if (!state.field[state.ninjas[1].point.y][state.ninjas[1].point.x].isEmpty()) continue;
+
+
             // 移動する
             set<Point> getSouls;
-            vector<Point> path0 = tryAllRelayPoint(state, state.ninjas[0].point, d0, step, &getSouls);
-            vector<Point> path1 = tryAllRelayPoint(state, state.ninjas[1].point, d1, step, &getSouls);
+            vector<Point> path0 = tryAllRelayPoint(state, _state.ninjas[0].point, d0, step, &getSouls);
+            vector<Point> path1 = tryAllRelayPoint(state, _state.ninjas[1].point, d1, step, &getSouls);
+
+            Point p0 = _state.ninjas[0].point;
+            Point p1 = _state.ninjas[1].point;
+
+            REP(i, step) {
+                if (i < path0.size()) {
+                    if (canMove(state, p0, path0[i])) p0 = move(&state, p0, path0[i]);
+                }
+                if (i < path1.size()) {
+                    if (canMove(state, p1, path1[i])) p1 = move(&state, p1, path1[i]);
+                }
+            }
+            state.ninjas[0].point = p0;
+            state.ninjas[1].point = p1;
+
+            state.setStepsToNinjas();
 
             int soulPoint = getSouls.size() * Evaluation::soulGetScore; // 取得したソウルのポイント
             vector<Point> restSouls;
-            set_difference(getSouls.begin(), getSouls.end(),
-                           state.souls.begin(), state.souls.end(), back_inserter(restSouls));
+            set_difference(state.souls.begin(), state.souls.end(),
+                           getSouls.begin(), getSouls.end(),
+                           back_inserter(restSouls));
 
-            state.setStepsToNinjas();
             // ソウルへの距離
-            REP(i, 4) {
+            int soulDistPoint = 0;
+//            cerr << "(";
+            REP(i, 8) {
                 auto itr = restSouls.begin() + i;
                 if (itr == restSouls.end()) break;
                 Point p = *itr;
-                soulPoint += Evaluation::soulDistScore(state.stepsToNinjas[p.y][p.x]);
+                soulDistPoint += Evaluation::soulDistScore(state.stepsToNinjas[p.y][p.x]);
+#ifdef DEBUG
+                cerr << state.stepsToNinjas[p.y][p.x] << " ";
+#endif
             }
+//            cerr << ")";
 
-            score += soulPoint;
+            score += soulPoint + soulDistPoint;
 
             // 犬移動
+            if (state.doppelganger.isInsideField()) {
+                state.setStepsToDoppel(state.doppelganger);
+            }
+//            for (auto pair : state.dogs) {
+//                auto dog = pair.second;
+//                cerr << "=" << dog.id << ":"  << dog.point.print() << "/";
+//            } cerr << endl;
             setNextDogs(&state);
+//
+//            for (auto pair : state.dogs) {
+//                auto dog = pair.second;
+//                cerr << "=" << dog.id << ":"  << dog.point.print() << "/";
+//            } cerr << endl;
             int dogPoint = getDogScore(state);
             score += dogPoint;
 
 #ifdef DEBUG
+            cerr << getSouls.size() << " ";
             for (Point p: path0) {
                 cerr << p.print();
             }
@@ -182,13 +234,23 @@ void Brain::setBestPath(const State &_state, int step, vector<Point> *outPath0, 
             for (Point p: path1) {
                 cerr << p.print();
             }
-            cerr << "score: " << score << endl;
+
+            cerr << " score: " << score << " dog:" << dogPoint << " soul:" <<
+            soulPoint << " soulDist:" << soulDistPoint << endl;
 #endif
 
             if (bestScore < score) {
                 bestScore = score;
                 bestPath0 = path0;
                 bestPath1 = path1;
+#ifdef DEBUG
+                cerr << bestScore << endl;
+                state.dumpField(cerr);
+                state.dumpStepsToNinjas(cerr);
+                if (state.doppelganger.isInsideField()) {
+                    state.dumpStepsToDoppel(cerr);
+                }
+#endif
             }
 
         }
@@ -206,16 +268,37 @@ void Brain::setBestPath(const State &_state, int step, vector<Point> *outPath0, 
 
     *outPath0 = bestPath0;
     *outPath1 = bestPath1;
+    return bestScore;
 }
 
 
-void Brain::simulate(State *state, string *outSkill,
+void Brain::simulate(const State &_state, string *outSkill,
                      vector<Point> *outPath0, vector<Point> *outPath1) {
     stringstream ssSkill;
 
-    ssSkill << 2 << endl;
+    ssSkill << 2;
     *outSkill = ssSkill.str();
-    setBestPath(*state, 2, outPath0, outPath1);
+    int bestScore = setBestPath(_state, 2, outPath0, outPath1, -INF);
+
+    State state = _state;
+    if (state.power > state.skillPower[Skill::DoppelMe]) {
+        REP(i, NINJA_NUM){
+            vector<Point> path0;
+            vector<Point> path1;
+            state.doppelganger = state.ninjas[i].point;
+            int score = setBestPath(state, 2, &path0, &path1, bestScore);
+            if (bestScore < score) {
+                bestScore = score;
+                *outPath0 = path0;
+                *outPath1 = path1;
+                stringstream ss;
+                ss << 3 << endl;
+                ss << Skill::DoppelMe << " " << state.doppelganger.y << " " << state.doppelganger.x;
+                *outSkill = ss.str();
+            }
+        }
+    }
+
 
     return;
 }

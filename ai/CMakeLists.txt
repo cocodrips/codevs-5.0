@@ -9,8 +9,10 @@ set(SOURCE_FILES src/game.cpp src/point.cpp src/base.h src/cell.cpp src/characte
         src/brain.h src/path.cpp src/path.h src/evaluation.cpp src/evaluation.h)
 add_executable(ai ${SOURCE_FILES})
 
-set(SOURCE_FILES src/game.cpp)
-add_executable(game ${SOURCE_FILES})
+set(MAIN_FILES src/game.cpp)
+add_executable(game ${MAIN_FILES})
+#add_dependencies(game ${SOURCE_FILE})
+
 
 set(TEST_FILES src/point.cpp src/character.cpp
         src/cell.cpp gtest/cell_test.cpp src/input.cpp src/direction.cpp

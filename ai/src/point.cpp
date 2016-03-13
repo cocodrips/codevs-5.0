@@ -53,6 +53,6 @@ string Point::print() const {
     return "P(" + to_string(y) + ", " + to_string(x) + ")";
 }
 
-bool Point::isInsideField() {
+bool Point::isInsideField() const {
     return 0 <= y && y < Y && 0 <= x && x < X;
 }

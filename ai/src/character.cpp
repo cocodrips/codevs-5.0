@@ -15,7 +15,8 @@ bool Character::operator==(const Character &other) const {
 }
 
 bool Character::operator<(const Character &other) const {
-    return id < other.id;
+    if (dist == other.dist ) return id < other.id;
+    return dist < other.dist;
 }
 
 

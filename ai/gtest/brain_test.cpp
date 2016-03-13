@@ -18,22 +18,67 @@ TEST(BrainTest, dog_step) {
     Brain::setNextDogs(&state);
     stringstream ss;
     state.dumpField(ss);
-    EXPECT_EQ(ss.str(),
-              "WWWWWWWWWWWWWW\n"
-              "W    O       W\n"
-              "W        xx  W\n"
-              "W         xxxW\n"
-              "W    O   1OOxW\n"
-              "W O  O   O  xW\n"
-              "W       O    W\n"
-              "W   OOOOOOOO W\n"
-              "W  OOOO  xOO W\n"
-              "W    O   xxxxW\n"
-              "W   OOOOOOOOxW\n"
-              "W     OO  OOxW\n"
-              "W       xxxxxW\n"
-              "W O  O OxO   W\n"
-              "W      O     W\n"
-              "W            W\n"
-              "WWWWWWWWWWWWWW\n");
+}
+
+TEST(BrainTest,can_move_block) {
+    Controller controller = Controller();
+    ifstream f("inputs/near_block.txt");
+    ASSERT_FALSE(f.fail());
+    Input::mainInput(&controller, f);
+    State state = controller.myState;
+    Point direction = Point(-1, 0);
+    EXPECT_TRUE(Brain::canMove(state, state.ninjas[1].point, direction));
+    state.ninjas[1].point = Brain::move(&state, state.ninjas[1].point, direction);
+
+    EXPECT_FALSE(Brain::canMove(state, state.ninjas[1].point, direction));
+
+//    state.setStepsToNinjas();
+//    state.dumpField(cout);
+}
+
+
+TEST(BrainTest,move_to_destination) {
+    Controller controller = Controller();
+    ifstream f("inputs/block_escape.txt");
+    ASSERT_FALSE(f.fail());
+    Input::mainInput(&controller, f);
+    State state = controller.myState;
+
+    Point me = state.ninjas[0].point;
+    vector<Point> path(2);
+    path[0] = Point(1, 0);
+    path[1] = Point(1, 0);
+
+    vector<Point> getSouls;
+    set<Point> souls;
+    int score = Brain::moveToDestination(&state, &me, path, &getSouls, souls);
+    state.ninjas[0].point = me;
+
+    state.setStepsToNinjas();
+    state.dumpField(cout);
+    EXPECT_TRUE(score > -INF);
+}
+
+TEST(BrainTest, pinch_doppel) {
+    Controller controller = Controller();
+    ifstream f("inputs/pinch_doppel.txt");
+    ASSERT_FALSE(f.fail());
+    Input::mainInput(&controller, f);
+    State state = controller.myState;
+
+    state.dumpField(cout);
+
+//    Point me = state.ninjas[0].point;
+//    vector<Point> path(2);
+//    path[0] = Point(1, 0);
+//    path[1] = Point(1, 0);
+//
+//    vector<Point> getSouls;
+//    set<Point> souls;
+//    int score = Brain::moveToDestination(&state, &me, path, &getSouls, souls);
+//    state.ninjas[0].point = me;
+//
+//    state.setStepsToNinjas();
+//    state.dumpField(cout);
+//    EXPECT_TRUE(score > -INF);
 }

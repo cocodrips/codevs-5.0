@@ -19,7 +19,7 @@ public:
     bool operator<(const Point &other) const;
     int dist(const Point &other) const;
     string print() const;
-    bool isInsideField();
+    bool isInsideField() const;
 
 
 };

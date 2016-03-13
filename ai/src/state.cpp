@@ -28,22 +28,31 @@ void State::dumpField(ostream &cerr) {
     Point point;
     stringstream ss;
     REP(y, Y) {
+        cerr << setw(2) << y;
         REP(x, X) {
             cell = field[y][x];
             point = Point(y, x);
-            char c = ' ';
+            string c = "";
             if (cell.isWall()) {
-                c = 'W';
+                c = "W";
             } else if (cell.isBlock()) {
-                c = 'O';
+                c = "O";
             } else if (dogPoints.find(point) != dogPoints.end()) {
-                c = 'x';
-            } else if (point == ninjas[0].point) {
-                c = '1';
-            } else if (point == ninjas[1].point) {
-                c = '2';
+                c = "x";
+            } else {
+                c = "_";
             }
-            cerr << c;
+
+            if (point == ninjas[0].point) {
+                c += "1";
+            } else if (point == ninjas[1].point) {
+                c += "2";
+            } else if (point == doppelganger) {
+                c += "#";
+            } else {
+                c += " ";
+            }
+            cerr << setw(2) << c;
         }
         cerr << endl;
     }
@@ -117,5 +126,44 @@ vector<vector<int>> State::stepsFromPoints(vector<Point> points) {
     }
     return steps;
 }
+
+void State::dumpStepsToNinjas(ostream &cerr) {
+
+    REP(y, Y) {
+        REP(x, X) {
+            cerr << setw(2);
+
+            if (stepsToNinjas[y][x] == INF) {
+                cerr << "__";
+            } else if (souls.find(Point(y, x)) != souls.end()) {
+                cerr << "@";
+            } else {
+                cerr << stepsToNinjas[y][x];
+            }
+            cerr << " ";
+        }
+        cerr << endl;
+    }
+}
+
+void State::dumpStepsToDoppel(ostream &cerr) {
+
+    REP(y, Y) {
+        REP(x, X) {
+            cerr << setw(2);
+
+            if (stepsToDopperl[y][x] == INF) {
+                cerr << "__";
+            } else if (souls.find(Point(y, x)) != souls.end()) {
+                cerr << "@";
+            } else {
+                cerr << stepsToDopperl[y][x];
+            }
+            cerr << " ";
+        }
+        cerr << endl;
+    }
+}
+
 
 #endif
