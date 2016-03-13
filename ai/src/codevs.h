@@ -1,7 +1,7 @@
 #ifndef AI_CODEVS
 #define AI_CODEVS
 
-#define DEBUG
+//#define DEBUG
 #include "base.h"
 #include "evaluation.h"
 

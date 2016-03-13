@@ -25,11 +25,13 @@ vector<Point> tryAllRelayPoint(const State &_state,
                                const Point &destination,
                                int step, set<Point> *outGetSouls);
 
-int setBestPath(const State &state, int step,
+int setBestPath(const State &state, const int step,
                 vector<Point> *outPath0,
                 vector<Point> *outPath1, int initScore);
 
-void simulate(const State &_state, string *outSkill,
+
+
+void simulate(const State &_state, const State &enemyState, string *outSkill,
               vector<Point> *outPath0, vector<Point> *outPath1);
 
 }

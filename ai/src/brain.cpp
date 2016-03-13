@@ -10,6 +10,7 @@ bool Brain::canMove(const State &state, const Point me, const Point direction) {
         Point nextBlock = nextPos + direction;
         Cell nextBlockCell = state.field[nextBlock.y][nextBlock.x];
         if (!nextBlockCell.isEmpty()) return false;
+        if (state.dogPoints.find(nextBlock) != state.dogPoints.end()) return false;
 
         // 忍者のマスに石が行くなら駄目
         set<int> dists = state.distToNinja(nextBlock);
@@ -117,7 +118,7 @@ vector<Point> Brain::tryAllRelayPoint(const State &_state,
     vector<Point> bestPath;
     vector<Point> bestGetSouls;
     int bestScore = -INF;
-    for (vector<Point> path : Path::destinations[2].at(destination)) {
+    for (vector<Point> path : Path::destinations[step].at(destination)) {
         State state = _state;
         Point me = _me;
         int score = 0;
@@ -137,7 +138,7 @@ vector<Point> Brain::tryAllRelayPoint(const State &_state,
 }
 
 
-int Brain::setBestPath(const State &_state, int step,
+int Brain::setBestPath(const State &_state, const int step,
                        vector<Point> *outPath0, vector<Point> *outPath1, int initScore) {
     int bestScore = initScore;
     vector<Point> bestPath0;
@@ -194,17 +195,13 @@ int Brain::setBestPath(const State &_state, int step,
 
             // ソウルへの距離
             int soulDistPoint = 0;
-//            cerr << "(";
             REP(i, 8) {
                 auto itr = restSouls.begin() + i;
                 if (itr == restSouls.end()) break;
                 Point p = *itr;
                 soulDistPoint += Evaluation::soulDistScore(state.stepsToNinjas[p.y][p.x]);
-#ifdef DEBUG
-                cerr << state.stepsToNinjas[p.y][p.x] << " ";
-#endif
             }
-//            cerr << ")";
+
 
             score += soulPoint + soulDistPoint;
 
@@ -212,16 +209,8 @@ int Brain::setBestPath(const State &_state, int step,
             if (state.doppelganger.isInsideField()) {
                 state.setStepsToDoppel(state.doppelganger);
             }
-//            for (auto pair : state.dogs) {
-//                auto dog = pair.second;
-//                cerr << "=" << dog.id << ":"  << dog.point.print() << "/";
-//            } cerr << endl;
+
             setNextDogs(&state);
-//
-//            for (auto pair : state.dogs) {
-//                auto dog = pair.second;
-//                cerr << "=" << dog.id << ":"  << dog.point.print() << "/";
-//            } cerr << endl;
             int dogPoint = getDogScore(state);
             score += dogPoint;
 
@@ -272,22 +261,30 @@ int Brain::setBestPath(const State &_state, int step,
 }
 
 
-void Brain::simulate(const State &_state, string *outSkill,
+void Brain::simulate(const State &_state, const State &enemyState,  string *outSkill,
                      vector<Point> *outPath0, vector<Point> *outPath1) {
-    stringstream ssSkill;
 
-    ssSkill << 2;
-    *outSkill = ssSkill.str();
-    int bestScore = setBestPath(_state, 2, outPath0, outPath1, -INF);
+
+    int defaultScore = setBestPath(_state, 2, outPath0, outPath1, -INF);
+    int bestScore = defaultScore;
 
     State state = _state;
+    // doppel
     if (state.power > state.skillPower[Skill::DoppelMe]) {
         REP(i, NINJA_NUM){
             vector<Point> path0;
             vector<Point> path1;
             state.doppelganger = state.ninjas[i].point;
-            int score = setBestPath(state, 2, &path0, &path1, bestScore);
-            if (bestScore < score) {
+            int score = setBestPath(state, 2, &path0, &path1, defaultScore);
+            cerr << "doppel: ";
+            for (auto p : path0) {
+                cerr << p.print();
+            }cerr << endl;
+            for (auto p : path1) {
+                cerr << p.print();
+            }cerr << endl;
+            if (bestScore < score/* &&
+                    defaultScore + Evaluation::doppelThreshold < score*/) {
                 bestScore = score;
                 *outPath0 = path0;
                 *outPath1 = path1;
@@ -299,6 +296,31 @@ void Brain::simulate(const State &_state, string *outSkill,
         }
     }
 
+    // speed
+//    if (state.skillPower[Skill::Speed] <= Evaluation::speedPowerThreshold) {
+//        if (state.power > state.skillPower[Skill::Speed]) {
+//            vector<Point> path0;
+//            vector<Point> path1;
+//            int score = setBestPath(state, 3, &path0, &path1, defaultScore);
+//            cerr << "SPEED:" << score << endl;
+//            if (bestScore < score &&
+//                    defaultScore + Evaluation::speedThreshold(state.skillPower[Skill::Speed]) < score) {
+//                bestScore = score;
+//                *outPath0 = path0;
+//                *outPath1 = path1;
+//                stringstream ss;
+//                ss << 3 << endl;
+//                ss << Skill::Speed;
+//                *outSkill = ss.str();
+//            }
+//        }
+//    }
+
+    if (*outSkill == "") {
+        stringstream ssSkill;
+        ssSkill << 2;
+        *outSkill = ssSkill.str();
+    }
 
     return;
 }

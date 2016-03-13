@@ -1,3 +1,3 @@
 cd `dirname $0`
-gcc -std=c++11 -O3 src/*.cpp
-./a.out
+g++ -std=c++11 -o  cocodripsAI -O3 src/*.cpp
+./cocodripsAI

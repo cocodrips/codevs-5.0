@@ -12,7 +12,7 @@ def get_all_destinaton(n):
     return dests
 
 
-step = 2
+step = 3
 
 for dest, paths in get_all_destinaton(step).items():
     print("{Point(", dest.y, ",", dest.x, "), {", end="")
