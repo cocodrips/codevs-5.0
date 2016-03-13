@@ -209,7 +209,6 @@ int Brain::setBestPath(const State &_state, const int step,
             if (state.doppelganger.isInsideField()) {
                 state.setStepsToDoppel(state.doppelganger);
             }
-
             setNextDogs(&state);
             int dogPoint = getDogScore(state);
             score += dogPoint;
@@ -268,23 +267,17 @@ void Brain::simulate(const State &_state, const State &enemyState,  string *outS
     int defaultScore = setBestPath(_state, 2, outPath0, outPath1, -INF);
     int bestScore = defaultScore;
 
-    State state = _state;
+
     // doppel
+    State state = _state;
     if (state.power > state.skillPower[Skill::DoppelMe]) {
         REP(i, NINJA_NUM){
             vector<Point> path0;
             vector<Point> path1;
             state.doppelganger = state.ninjas[i].point;
             int score = setBestPath(state, 2, &path0, &path1, defaultScore);
-            cerr << "doppel: ";
-            for (auto p : path0) {
-                cerr << p.print();
-            }cerr << endl;
-            for (auto p : path1) {
-                cerr << p.print();
-            }cerr << endl;
-            if (bestScore < score/* &&
-                    defaultScore + Evaluation::doppelThreshold < score*/) {
+            if (bestScore < score &&
+                    defaultScore + Evaluation::doppelThreshold < score) {
                 bestScore = score;
                 *outPath0 = path0;
                 *outPath1 = path1;
@@ -297,24 +290,27 @@ void Brain::simulate(const State &_state, const State &enemyState,  string *outS
     }
 
     // speed
-//    if (state.skillPower[Skill::Speed] <= Evaluation::speedPowerThreshold) {
-//        if (state.power > state.skillPower[Skill::Speed]) {
-//            vector<Point> path0;
-//            vector<Point> path1;
-//            int score = setBestPath(state, 3, &path0, &path1, defaultScore);
-//            cerr << "SPEED:" << score << endl;
-//            if (bestScore < score &&
-//                    defaultScore + Evaluation::speedThreshold(state.skillPower[Skill::Speed]) < score) {
-//                bestScore = score;
-//                *outPath0 = path0;
-//                *outPath1 = path1;
-//                stringstream ss;
-//                ss << 3 << endl;
-//                ss << Skill::Speed;
-//                *outSkill = ss.str();
-//            }
-//        }
-//    }
+    state = _state;
+    if (state.skillPower[Skill::Speed] <= Evaluation::speedPowerThreshold) {
+        if (state.power > state.skillPower[Skill::Speed] &&
+                state.power > state.skillPower[Skill::DoppelMe] * 3) {
+            vector<Point> path0;
+            vector<Point> path1;
+            int score = setBestPath(state, 3, &path0, &path1, defaultScore);
+            if (bestScore < score &&
+                    defaultScore + Evaluation::speedThreshold(state.skillPower[Skill::Speed]) < score) {
+                bestScore = score;
+                *outPath0 = path0;
+                *outPath1 = path1;
+                stringstream ss;
+                ss << 3 << endl;
+                ss << Skill::Speed;
+                *outSkill = ss.str();
+            }
+        }
+    }
+
+    if (state.power)
 
     if (*outSkill == "") {
         stringstream ssSkill;

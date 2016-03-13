@@ -8,7 +8,7 @@ int Evaluation::dogDistScore(int dist) {
     if (dist == 0) {
         return -10000;
     }
-    if (dist < Evaluation::dogStepThreshld) return -0 / (dist * dist);
+    if (dist < Evaluation::dogStepThreshld) return -20 / (dist * dist);
     return 0;
 }
 
