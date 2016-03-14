@@ -12,11 +12,11 @@ public:
     Cell ();
     Cell (char c) ;
 
-    bool isEmpty () ;
+    bool isEmpty () const;
 
-    bool isBlock () ;
+    bool isBlock () const;
 
-    bool isWall() ;
+    bool isWall() const;
 };
 
 #endif //AI_CELL_H

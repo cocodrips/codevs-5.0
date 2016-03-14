@@ -8,14 +8,14 @@ Cell::Cell(char c) {
     type = c;
 }
 
-bool Cell::isEmpty() {
+bool Cell::isEmpty() const {
     return type == Empty;
 }
 
-bool Cell::isBlock() {
+bool Cell::isBlock() const {
     return type == Block;
 }
 
-bool Cell::isWall() {
+bool Cell::isWall() const {
     return type == Wall;
 }

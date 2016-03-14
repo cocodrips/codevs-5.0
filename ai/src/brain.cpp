@@ -1,5 +1,59 @@
 #include "brain.h"
 
+bool Brain::canDropBlock(const State &state, const Point &point) {
+    if (state.dogPoints.find(point) != state.dogPoints.end()) return false;
+    REP (i, NINJA_NUM) {
+        if (state.ninjas[i].point == point) return false;
+    }
+    if (!state.field[point.y][point.x].isEmpty()) return false;
+    return true;
+}
+
+Point Brain::cornerBlock(const State &state) {
+    set<Point> corners = {Point(1, 1), Point(1, Y - 2), Point(X - 2, 1), Point(X - 2, Y - 2)};
+    for (Point corner : corners) {
+        if (state.field[corner.y][corner.x].isBlock()) {
+            return corner;
+        }
+    }
+    return Point();
+}
+
+Point Brain::endMost(const vector<Point> &points) {
+    int endMostScore = -INF;
+    Point endMostPoint;
+    for (const Point &point : points) {
+        int score = 0;
+        score += abs(Y / 2 - point.y);
+        score += abs(X / 2 - point.x);
+        if (endMostScore < score) {
+            endMostScore = score;
+            endMostPoint = point;
+        }
+    }
+    return endMostPoint;
+}
+
+Point Brain::level5Death(const State &_state) {
+    State state = _state;
+    state.setStepsToNinjas();
+    REP(y, Y) {
+        REP(x, X) {
+            if (state.stepsToNinjas[y][x] <= 1) {
+                Point p = Point(y, x);
+                if (state.souls.find(p) == state.souls.end()) continue; // 敵の近くにソウルない
+                REP (i, DIRECTION_NUM) {
+                    if (state.dogPoints.find(p + Direction::directions[i])
+                        != state.dogPoints.end()) { // 敵の近くにソウルがあって、犬もいる
+                        return p;
+                    }
+                }
+            }
+        }
+    }
+    return Point();
+}
+
 bool Brain::canMove(const State &state, const Point me, const Point direction) {
     Point nextPos = me + direction;
     if (!nextPos.isInsideField()) return false;
@@ -97,7 +151,6 @@ void Brain::setNextDogs(State *state) {
     state->dogs = newDogs;
     state->dogPoints = newDogPoints;
 }
-
 
 
 int Brain::getDogScore(const State &state) {
@@ -259,8 +312,104 @@ int Brain::setBestPath(const State &_state, const int step,
     return bestScore;
 }
 
+Point Brain::dropBlockWorstPoint(const State &_state, const int scoreDiffThreshold) {
+    vector<Point> path0;
+    vector<Point> path1;
 
-void Brain::simulate(const State &_state, const State &enemyState,  string *outSkill,
+    State state = _state;
+    state.setStepsToNinjas();
+    vector<vector<int>> steps = state.stepsToNinjas;
+    int defaultScore = setBestPath(state, 2, &path0, &path1, -INF);
+    int worstScore = defaultScore;
+    Point worstPoint;
+    REP (y, Y) {
+        REP(x, X) {
+            if (steps[y][x] > Evaluation::dropEnemyBlockMostFar) continue;
+            if (!state.field[y][x].isEmpty()) continue;
+            Point p = Point(y, x);
+            if (state.dogPoints.find(p) != state.dogPoints.end()) continue;
+            if (state.souls.find(p) != state.souls.end()) continue;
+            State s = _state;
+            s.field[y][x].type = Cell::Block;
+            path0.clear();
+            path1.clear();
+            int score = setBestPath(s, 2, &path0, &path1, -INF);
+
+            if (score < worstScore) {
+                worstScore = score;
+                worstPoint = p;
+            }
+        }
+    }
+
+    if (scoreDiffThreshold < defaultScore - worstScore) {
+        return worstPoint;
+    }
+    return Point();
+
+}
+
+int Brain::doppelBestPoint(const State &_state, const int scoreThreshold, string *outSkill,
+                           vector<Point> *outPath0, vector<Point> *outPath1) {
+    vector<Point> path0;
+    vector<Point> path1;
+    State state = _state;
+
+    int bestScore = -INF;
+    Point bestPoint;
+    vector<Point> bestPath0;
+    vector<Point> bestPath1;
+
+    // 何点か確認
+    for (int i = 0; i < sizeof(Evaluation::doppelTestPointY) / sizeof(Evaluation::doppelTestPointY[0]); i++) {
+        for (int j = 0; j < sizeof(Evaluation::doppelTestPointX) / sizeof(Evaluation::doppelTestPointX[0]); j++) {
+            int y = Evaluation::doppelTestPointY[i];
+            int x = Evaluation::doppelTestPointX[j];
+
+            if (!state.field[y][x].isEmpty()) continue;
+            Point p = Point(y, x);
+            State s = _state;
+            s.doppelganger = p;
+            path0.clear();
+            path1.clear();
+            int score = setBestPath(s, 2, &path0, &path1, scoreThreshold);
+
+            if (bestScore < score) {
+                bestScore = score;
+                bestPoint = p;
+                bestPath0 = path0;
+                bestPath1 = path1;
+            }
+        }
+    }
+
+    REP(i, NINJA_NUM) {
+        path0.clear();
+        path1.clear();
+        State s = _state;
+        s.doppelganger = s.ninjas[i].point;
+        int score = setBestPath(state, 2, &path0, &path1, scoreThreshold);
+        if (bestScore < score) {
+            bestScore = score;
+            bestPoint = s.ninjas[i].point;
+            bestPath0 = path0;
+            bestPath1 = path1;
+        }
+    }
+
+    if (scoreThreshold < bestScore) {
+        *outPath0 = bestPath0;
+        *outPath1 = bestPath1;
+        stringstream ss;
+        ss << 3 << endl;
+        ss << Skill::DoppelMe << " " << bestPoint.y << " " << bestPoint.x;
+        *outSkill = ss.str();
+        return bestScore;
+    }
+    return -INF;
+}
+
+void Brain::simulate(const State &_state, const State &enemyState, string *outSkill,
                      vector<Point> *outPath0, vector<Point> *outPath1) {
 
 
@@ -268,24 +417,15 @@ void Brain::simulate(const State &_state, const State &enemyState,  string *outS
     int bestScore = defaultScore;
 
 
+    vector<Point> path0;
+    vector<Point> path1;
+
     // doppel
     State state = _state;
-    if (state.power > state.skillPower[Skill::DoppelMe]) {
-        REP(i, NINJA_NUM){
-            vector<Point> path0;
-            vector<Point> path1;
-            state.doppelganger = state.ninjas[i].point;
-            int score = setBestPath(state, 2, &path0, &path1, defaultScore);
-            if (bestScore < score &&
-                    defaultScore + Evaluation::doppelThreshold < score) {
-                bestScore = score;
-                *outPath0 = path0;
-                *outPath1 = path1;
-                stringstream ss;
-                ss << 3 << endl;
-                ss << Skill::DoppelMe << " " << state.doppelganger.y << " " << state.doppelganger.x;
-                *outSkill = ss.str();
-            }
+    if (state.power >= state.skillPower[Skill::DoppelMe]) {
+        int score = doppelBestPoint(state, defaultScore + Evaluation::doppelThreshold, outSkill, outPath0, outPath1);
+        if (score > -INF) {
+            bestScore = score;
         }
     }
 
@@ -293,12 +433,12 @@ void Brain::simulate(const State &_state, const State &enemyState,  string *outS
     state = _state;
     if (state.skillPower[Skill::Speed] <= Evaluation::speedPowerThreshold) {
         if (state.power > state.skillPower[Skill::Speed] &&
-                state.power > state.skillPower[Skill::DoppelMe] * 3) {
-            vector<Point> path0;
-            vector<Point> path1;
+            state.power > state.skillPower[Skill::DoppelMe] * 3) {
+            path0.clear();
+            path1.clear();
             int score = setBestPath(state, 3, &path0, &path1, defaultScore);
             if (bestScore < score &&
-                    defaultScore + Evaluation::speedThreshold(state.skillPower[Skill::Speed]) < score) {
+                defaultScore + Evaluation::speedThreshold(state.skillPower[Skill::Speed]) < score) {
                 bestScore = score;
                 *outPath0 = path0;
                 *outPath1 = path1;
@@ -310,7 +450,48 @@ void Brain::simulate(const State &_state, const State &enemyState,  string *outS
         }
     }
 
-    if (state.power)
+    // すみっこに岩があったらけす
+    state = _state;
+    if (*outSkill == "" && state.power > state.skillPower[Skill::DeleteBlockMe]) {
+        Point corner = cornerBlock(state);
+        if (corner.isInsideField()) {
+            state.field[corner.y][corner.x].type = Cell::Empty;
+            path0.clear();
+            path1.clear();
+            stringstream ss;
+            ss << 3 << endl;
+            ss << Skill::DeleteBlockMe << " " << corner.y << " " << corner.x;
+            *outSkill = ss.str();
+        }
+    }
+
+    // 暇だったら敵落石
+    if (*outSkill == "" && state.power > state.skillPower[Skill::DropBlockEnemy]
+        && state.power > state.skillPower[Skill::DoppelMe] * 3) {
+        path0.clear();
+        path1.clear();
+
+        Point p = dropBlockWorstPoint(enemyState,
+                                      Evaluation::dropStoneEnemyThreshold(state.skillPower[Skill::DropBlockEnemy]));
+        if (p.isInsideField() && canDropBlock(enemyState, p)) {
+            stringstream ss;
+            ss << 3 << endl;
+            ss << Skill::DropBlockEnemy << " " << p.y << " " << p.x;
+            *outSkill = ss.str();
+        }
+    }
+
+
+//    if (*outSkill == "" && state.power > state.skillPower[Skill::DoppelEnemy]
+//         && state.power > state.skillPower[Skill::DoppelMe] * 3) {
+//        Point p = level5Death(enemyState);
+//        if (p.isInsideField()) {
+//            stringstream ss;
+//            ss << 3 << endl;
+//            ss << Skill::DoppelEnemy << " " << p.y << " " << p.x;
+//            *outSkill = ss.str();
+//        }
+//    }
 
     if (*outSkill == "") {
         stringstream ssSkill;

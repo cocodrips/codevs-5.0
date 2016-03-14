@@ -9,6 +9,11 @@
 
 namespace Brain {
 
+bool canDropBlock(const State &state, const Point &point);
+Point cornerBlock(const State &state);
+Point endMost(const vector<Point> &points);
+Point level5Death(const State &_state);
+
 bool canMove(const State &state, const Point me, const Point direction);
 
 int moveToDestination(State *state, Point *outMe, const vector<Point> &path,
@@ -30,10 +35,14 @@ int setBestPath(const State &state, const int step,
                 vector<Point> *outPath1, int initScore);
 
 
+Point dropBlockWorstPoint(const State &_state, const int scoreDiffThreshold);
+int doppelBestPoint(const State &_state, const int scoreThreshold, string *outSkill,
+                      vector<Point> *outPath0, vector<Point> *outPath1);
 
 void simulate(const State &_state, const State &enemyState, string *outSkill,
               vector<Point> *outPath0, vector<Point> *outPath1);
 
 }
+
 
 #endif //AI_BRAIN_H
