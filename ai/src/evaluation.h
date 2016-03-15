@@ -3,7 +3,7 @@
 
 
 namespace Evaluation {
-const int mySkillThreshld = 20;
+const int mySkillThreshld = 70;
 const int SendDogScorePerPower = 4;
 const int dogStepThreshld = 4;
 const int soulGetScore = 100;

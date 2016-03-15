@@ -72,7 +72,7 @@ float Brain::closedDirectionNum(const State &state, const Point &point) {
         Point next = point + d;
         if (field[next.y][next.x].isWall()) continue;
         if (state.dogPoints.find(next) != state.dogPoints.end()) { // 犬はやわらかい壁
-            directionNum -= 0.6;
+            directionNum -= 1;
             continue;
         }
         if (field[next.y][next.x].isBlock()) {
@@ -633,9 +633,9 @@ void Brain::simulate(const State &_state, const State &enemyState, string *outSk
             state.skillPower[Skill::SendDog] < 16 &&
             state.power > state.skillPower[Skill::DoppelMe] * 3 + state.skillPower[Skill::SendDog]) {
         int minScore = defaultScore/* + Evaluation::sendDogThreshold(state.skillPower[Skill::SendDog])*/;
-        minScore = max(minScore, bestScore);
+//        minScore = max(minScore, bestScore);
         int score = sendDogBestPoint(state,
-                                     state.skillPower[Skill::SendDog] / Evaluation::SendDogScorePerPower,
+                                     (state.skillPower[Skill::SendDog] / Evaluation::SendDogScorePerPower) + 1,
                                      minScore,
                                      outSkill, outPath0, outPath1);
         if (score > -INF) {
@@ -648,7 +648,7 @@ void Brain::simulate(const State &_state, const State &enemyState, string *outSk
     state = _state;
     if (defaultScore < Evaluation::mySkillThreshld &&
         state.power >= state.skillPower[Skill::DeleteBlockMe]) {
-        int minScore = defaultScore + Evaluation::deleteStoneThreshold(state.skillPower[Skill::DeleteBlockMe]);
+        int minScore = defaultScore /*+ Evaluation::deleteStoneThreshold(state.skillPower[Skill::DeleteBlockMe])*/;
         minScore = max(minScore, bestScore);
         int score = deleteBlockBestPoint(state,
                                          minScore,

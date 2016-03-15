@@ -9,7 +9,7 @@ int Evaluation::sendDogThreshold(int power) {
 }
 
 int Evaluation::deleteStoneThreshold(int power) {
-    return 40 * power;
+    return 20 * power;
 }
 
 int Evaluation::closedDirectionScore(float closedDirectionNum) {
