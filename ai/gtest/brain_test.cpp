@@ -20,7 +20,7 @@ TEST(BrainTest, dog_step) {
     state.dumpField(ss);
 }
 
-TEST(BrainTest,can_move_block) {
+TEST(BrainTest, can_move_block) {
     Controller controller = Controller();
     ifstream f("inputs/near_block.txt");
     ASSERT_FALSE(f.fail());
@@ -35,7 +35,7 @@ TEST(BrainTest,can_move_block) {
 }
 
 
-TEST(BrainTest,move_to_destination) {
+TEST(BrainTest, move_to_destination) {
     Controller controller = Controller();
     ifstream f("inputs/block_escape.txt");
     ASSERT_FALSE(f.fail());
@@ -79,5 +79,38 @@ TEST(BrainTest, closed_direction_num) {
     cout << "== " << num0 << " " << num1 << endl;
 //    EXPECT_EQ(num0, 1);
 //    EXPECT_EQ(num1, 3);
+
+}
+
+TEST(BrainTest, around_dog_num) {
+    Controller controller = Controller();
+    ifstream f("inputs/around_dog.txt");
+    ASSERT_FALSE(f.fail());
+    Input::mainInput(&controller, f);
+
+    State state = controller.myState;
+    int num0 = Brain::aroundDogNum(state, state.ninjas[0].point);
+    int num1 = Brain::aroundDogNum(state, state.ninjas[1].point);
+    EXPECT_EQ(num0, 4);
+    EXPECT_EQ(num1, 1);
+
+}
+
+TEST(BrainTest, senf_dog_test) {
+    Controller controller = Controller();
+    ifstream f("inputs/send_dog_test.txt");
+    ASSERT_FALSE(f.fail());
+    Input::mainInput(&controller, f);
+
+    State state = controller.myState;
+    vector<Point> path0;
+    vector<Point> path1;
+    state.dumpField(cerr);
+    int defaultScore = Brain::setBestPath(state, 2, &path0, &path1, -INF);
+
+    state.dogPoints.clear();
+    state.dogs.clear();
+    state.dumpField(cerr);
+    int score = Brain::setBestPath(state, 2, &path0, &path1, -INF);
 
 }

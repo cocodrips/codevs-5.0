@@ -18,6 +18,7 @@ Point endMost(const vector<Point> &points);
 Point level5Death(const State &_state);
 
 float closedDirectionNum(const State &state, const Point &point);
+int aroundDogNum(const State &state, const Point &point);
 
 
 bool canMove(const State &state, const Point me, const Point direction);
@@ -42,6 +43,9 @@ int setBestPath(const State &state, const int step,
 
 
 Point dropBlockWorstPoint(const State &_state, const int scoreDiffThreshold);
+
+int sendDogBestPoint(const State &_state, const int dogMin, const int minScore, string *outSkill,
+                    vector<Point> *outPath0, vector<Point> *outPath1);
 
 int doppelBestPoint(const State &_state, const int scoreThreshold, string *outSkill,
                     vector<Point> *outPath0, vector<Point> *outPath1);

@@ -36,22 +36,31 @@ Point Brain::endMost(const vector<Point> &points) {
 
 Point Brain::level5Death(const State &_state) {
     State state = _state;
+    vector<Point> path0;
+    vector<Point> path1;
+
+    int worstScore = setBestPath(state, 2, &path0, &path1, -INF);
+    Point worstPoint;
     state.setStepsToNinjas();
+
     REP(y, Y) {
         REP(x, X) {
-            if (state.stepsToNinjas[y][x] <= 1) {
+            if (state.stepsToNinjas[y][x] <= 2) {
+                state = _state;
                 Point p = Point(y, x);
-                if (state.souls.find(p) == state.souls.end()) continue; // 敵の近くにソウルない
-                REP (i, DIRECTION_NUM) {
-                    if (state.dogPoints.find(p + Direction::directions[i])
-                        != state.dogPoints.end()) { // 敵の近くにソウルがあって、犬もいる
-                        return p;
-                    }
+                state.doppelganger = p;
+
+                path0.clear();
+                path1.clear();
+                int score = setBestPath(state, 2, &path0, &path1, -INF);
+                if (score < worstScore) {
+                    worstScore = score;
+                    worstPoint = p;
                 }
             }
         }
     }
-    return Point();
+    return worstPoint;
 }
 
 float Brain::closedDirectionNum(const State &state, const Point &point) {
@@ -75,6 +84,19 @@ float Brain::closedDirectionNum(const State &state, const Point &point) {
         directionNum -= 1;
     }
     return directionNum;
+}
+
+int Brain::aroundDogNum(const State &state, const Point &point) {
+    int dogNum = 0;
+    FOR(y, -1, 2) {
+        FOR(x, -1, 2) {
+            Point p = point + Point(y, x);
+            if (state.dogPoints.find(p) != state.dogPoints.end()) {
+                dogNum++;
+            }
+        }
+    }
+    return dogNum;
 }
 
 bool Brain::canMove(const State &state, const Point me, const Point direction) {
@@ -294,6 +316,7 @@ int Brain::setBestPath(const State &_state, const int step,
                 int closedNum = closedDirectionNum(state, state.ninjas[i].point);
                 closedPoint += Evaluation::closedDirectionScore(closedNum);
             }
+            score += closedPoint;
 
 
 #ifdef DEBUG
@@ -307,7 +330,7 @@ int Brain::setBestPath(const State &_state, const int step,
             }
 
             cerr << " score: " << score << " dog:" << dogPoint << " soul:" <<
-            soulPoint << " soulDist:" << soulDistPoint << endl;
+            soulPoint << " soulDist:" << soulDistPoint << " closedPoint: " << closedPoint << endl;
 #endif
 
             if (bestScore < score) {
@@ -376,6 +399,56 @@ Point Brain::dropBlockWorstPoint(const State &_state, const int scoreDiffThresho
         return worstPoint;
     }
     return Point();
+
+}
+
+int Brain::sendDogBestPoint(const State &_state, const int dogMin, const int minScore, string *outSkill,
+                            vector<Point> *outPath0,
+                            vector<Point> *outPath1) {
+    vector<Point> path0;
+    vector<Point> path1;
+
+    int bestScore = -INF;
+    int bestNinja;
+    vector<Point> bestPath0;
+    vector<Point> bestPath1;
+
+    REP(i, NINJA_NUM) {
+        path0.clear();
+        path1.clear();
+        State state = _state;
+        int dogNum = 0;
+        Point point = state.ninjas[i].point;
+        FOR(y, -1, 2) {
+            FOR(x, -1, 2) {
+                Point p = point + Point(y, x);
+                if (state.dogPoints.find(p) != state.dogPoints.end()) {
+                    state.dogPoints.erase(p);
+                    state.dogs.erase(p);
+                    dogNum++;
+                }
+            }
+        }
+        if (dogNum < dogMin) { continue; }
+        int score = setBestPath(state, 2, &path0, &path1, -INF);
+        if (bestScore < score) {
+            bestScore = score;
+            bestNinja = i;
+            bestPath0 = path0;
+            bestPath1 = path1;
+        }
+    }
+
+    if (minScore < bestScore) {
+        *outPath0 = bestPath0;
+        *outPath1 = bestPath1;
+        stringstream ss;
+        ss << 3 << endl;
+        ss << Skill::SendDog << " " << bestNinja;
+        *outSkill = ss.str();
+        return bestScore;
+    }
+    return -INF;
 
 }
 
@@ -553,6 +626,23 @@ void Brain::simulate(const State &_state, const State &enemyState, string *outSk
             bestScore = score;
         }
     }
+
+    // 回転斬り
+    state = _state;
+    if ((defaultScore < Evaluation::mySkillThreshld || state.skillPower[Skill::SendDog] < 10) &&
+            state.skillPower[Skill::SendDog] < 16 &&
+            state.power > state.skillPower[Skill::DoppelMe] * 3 + state.skillPower[Skill::SendDog]) {
+        int minScore = defaultScore/* + Evaluation::sendDogThreshold(state.skillPower[Skill::SendDog])*/;
+        minScore = max(minScore, bestScore);
+        int score = sendDogBestPoint(state,
+                                     state.skillPower[Skill::SendDog] / Evaluation::SendDogScorePerPower,
+                                     minScore,
+                                     outSkill, outPath0, outPath1);
+        if (score > -INF) {
+            bestScore = score;
+        }
+    }
+
 
     // 近くの石けす
     state = _state;
