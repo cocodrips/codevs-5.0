@@ -409,6 +409,98 @@ int Brain::doppelBestPoint(const State &_state, const int scoreThreshold, string
     return -INF;
 }
 
+int Brain::deleteBlockBestPoint(const State &_state, const int scoreThreshold, string *outSkill,
+                                vector<Point> *outPath0, vector<Point> *outPath1) {
+
+    vector<Point> path0;
+    vector<Point> path1;
+    State state;
+
+    int bestScore = -INF;
+    Point bestPoint;
+    vector<Point> bestPath0;
+    vector<Point> bestPath1;
+
+    REP(i, NINJA_NUM) {
+        Point ninjaPoint = _state.ninjas[i].point;
+        state = _state;
+
+        REP(j, DIRECTION_NUM) {
+            Point d = Direction::directions[j];
+            Point p = ninjaPoint + d;
+            if (!state.field[p.y][p.x].isBlock()) continue;
+            state.field[p.y][p.x].type = Cell::Empty;
+            path0.clear();
+            path1.clear();
+            int score = setBestPath(state, 2, &path0, &path1, scoreThreshold);
+
+            if (bestScore < score) {
+                bestScore = score;
+                bestPoint = p;
+                bestPath0 = path0;
+                bestPath1 = path1;
+            }
+        }
+    }
+
+    if (scoreThreshold < bestScore) {
+        *outPath0 = bestPath0;
+        *outPath1 = bestPath1;
+        stringstream ss;
+        ss << 3 << endl;
+        ss << Skill::DeleteBlockMe << " " << bestPoint.y << " " << bestPoint.x;
+        *outSkill = ss.str();
+        return bestScore;
+    }
+    return -INF;
+}
+
+int Brain::deleteBlockWorstPoint(const State &_state, const int scoreThreshold, string *outSkill,
+                                vector<Point> *outPath0, vector<Point> *outPath1) {
+
+    vector<Point> path0;
+    vector<Point> path1;
+    State state;
+
+    int bestScore = -INF;
+    Point bestPoint;
+    vector<Point> bestPath0;
+    vector<Point> bestPath1;
+
+    REP(i, NINJA_NUM) {
+        Point ninjaPoint = _state.ninjas[i].point;
+        state = _state;
+
+        REP(j, DIRECTION_NUM) {
+            Point d = Direction::directions[j];
+            Point p = ninjaPoint + d;
+            if (!state.field[p.y][p.x].isBlock()) continue;
+            state.field[p.y][p.x].type = Cell::Empty;
+            path0.clear();
+            path1.clear();
+            int score = setBestPath(state, 2, &path0, &path1, scoreThreshold);
+
+            if (bestScore < score) {
+                bestScore = score;
+                bestPoint = p;
+                bestPath0 = path0;
+                bestPath1 = path1;
+            }
+        }
+    }
+
+    if (scoreThreshold < bestScore) {
+        *outPath0 = bestPath0;
+        *outPath1 = bestPath1;
+        stringstream ss;
+        ss << 3 << endl;
+        ss << Skill::DeleteBlockMe << " " << bestPoint.y << " " << bestPoint.x;
+        *outSkill = ss.str();
+        return bestScore;
+    }
+    return -INF;
+}
+
 void Brain::simulate(const State &_state, const State &enemyState, string *outSkill,
                      vector<Point> *outPath0, vector<Point> *outPath1) {
 
@@ -420,10 +512,27 @@ void Brain::simulate(const State &_state, const State &enemyState, string *outSk
     vector<Point> path0;
     vector<Point> path1;
 
-    // doppel
+    // 影分身
     State state = _state;
-    if (state.power >= state.skillPower[Skill::DoppelMe]) {
-        int score = doppelBestPoint(state, defaultScore + Evaluation::doppelThreshold, outSkill, outPath0, outPath1);
+    if (defaultScore < Evaluation::mySkillThreshld &&
+            state.power >= state.skillPower[Skill::DoppelMe]) {
+        int score = doppelBestPoint(state,
+                                    defaultScore + Evaluation::doppelThreshold(state.skillPower[Skill::DoppelMe]),
+                                    outSkill, outPath0, outPath1);
+        if (score > -INF) {
+            bestScore = score;
+        }
+    }
+
+    // 近くの石けす
+    state = _state;
+    if (defaultScore < Evaluation::mySkillThreshld &&
+            state.power >= state.skillPower[Skill::DeleteBlockMe]) {
+        int minScore = defaultScore + Evaluation::deleteStoneThreshold(state.skillPower[Skill::DeleteBlockMe]);
+        minScore = max(minScore, bestScore);
+        int score = deleteBlockBestPoint(state,
+                                         minScore,
+                                         outSkill, outPath0, outPath1);
         if (score > -INF) {
             bestScore = score;
         }
@@ -431,7 +540,8 @@ void Brain::simulate(const State &_state, const State &enemyState, string *outSk
 
     // speed
     state = _state;
-    if (state.skillPower[Skill::Speed] <= Evaluation::speedPowerThreshold) {
+    if (defaultScore < Evaluation::mySkillThreshld &&
+            state.skillPower[Skill::Speed] <= Evaluation::speedPowerThreshold) {
         if (state.power > state.skillPower[Skill::Speed] &&
             state.power > state.skillPower[Skill::DoppelMe] * 3) {
             path0.clear();

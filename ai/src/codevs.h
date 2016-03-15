@@ -11,11 +11,6 @@ const int X = 14;
 const int NINJA_NUM = 2;
 const int DIRECTION_NUM = 5;
 
-namespace evaluation {
-
-
-}
-
 namespace Skill {
 const int Speed = 0;
 const int DropBlockMe = 1;

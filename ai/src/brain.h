@@ -39,6 +39,11 @@ Point dropBlockWorstPoint(const State &_state, const int scoreDiffThreshold);
 int doppelBestPoint(const State &_state, const int scoreThreshold, string *outSkill,
                       vector<Point> *outPath0, vector<Point> *outPath1);
 
+int deleteBlockBestPoint (const State &_state, const int scoreThreshold, string *outSkill,
+                          vector<Point> *outPath0, vector<Point> *outPath1);
+int deleteBlockWorstPoint (const State &_state, const int scoreThreshold, string *outSkill,
+                          vector<Point> *outPath0, vector<Point> *outPath1);
+
 void simulate(const State &_state, const State &enemyState, string *outSkill,
               vector<Point> *outPath0, vector<Point> *outPath1);
 
