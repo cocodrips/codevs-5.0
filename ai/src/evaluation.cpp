@@ -8,6 +8,15 @@ int Evaluation::deleteStoneThreshold(int power) {
     return 40 * power;
 }
 
+int Evaluation::closedDirectionScore(float closedDirectionNum) {
+    if (closedDirectionNum <= 2) { return 0; }
+    if (closedDirectionNum < 3) { return -20; }
+    if (closedDirectionNum < 4) { return -100; }
+    if (closedDirectionNum == 4) { return -1000; }
+    return -1000;
+}
+
+
 int Evaluation::dogDistScore(int dist) {
     if (dist == 0) {
         return -10000;

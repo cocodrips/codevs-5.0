@@ -87,6 +87,68 @@ void State::setStepsToDoppel(Point doppel) {
     stepsToDopperl = stepsFromPoints(points);
 }
 
+void State::setStepsToReachableCellFromNinja() {
+    vector<Point> ninjaPoint;
+
+    ninjaPoint.push_back(ninjas[0].point);
+    ninjaPoint.push_back(ninjas[1].point);
+    stepsToReachableCellNinjas = stepsToReachableCell(ninjaPoint);
+
+}
+
+vector<vector<int>> State::stepsToReachableCell(vector<Point> points) {
+    vector<vector<int>> steps(Y);
+    // 初期化
+    REP (y, Y) {
+        steps[y] = vector<int>(X);
+        REP(x, X) {
+            steps[y][x] = INF;
+        }
+    }
+
+    set<Point> visited;
+    priority_queue<tuple<int, Point>, vector<tuple<int, Point>>, greater<tuple<int, Point>>> queue; //dist, point
+    for (Point p : points) {
+        queue.push(make_tuple(0, p));
+        visited.insert(p);
+    }
+
+    while (!queue.empty()) {
+        tuple<int, Point> q = queue.top();
+        queue.pop();
+
+        int step = get<0>(q);
+        Point point = get<1>(q);
+
+        steps[point.y][point.x] = step;
+
+        REP(i, DIRECTION_NUM) {
+            Point d = Direction::directions[i];
+            Point next = point + d;
+            if (field[next.y][next.x].isWall()) continue;
+            if (dogPoints.find(next) != dogPoints.end()) continue;          // 犬は壁
+            if (field[next.y][next.x].isBlock()) {
+                Point nextnext = next + d;
+                if (field[nextnext.y][nextnext.x].isBlock()) continue;      // 石石は壁
+                if (dogPoints.find(nextnext) != dogPoints.end()) continue;  // 石犬も壁
+                //本当は石忍者も壁
+                if (field[nextnext.y][nextnext.x].isEmpty()) {              // 石空?は壁
+                    Point nnn = nextnext + d;
+                    if (!field[nnn.y][nnn.x].isEmpty()) continue;
+                    if (dogPoints.find(nnn) != dogPoints.end()) continue;
+                }
+            }
+            if (visited.find(next) == visited.end()) {
+                visited.insert(next);
+                queue.push(make_tuple(step + 1, next));
+            }
+
+        }
+
+    }
+    return steps;
+}
+
 vector<vector<int>> State::stepsFromPoints(vector<Point> points) {
     vector<vector<int>> steps(Y);
     REP (y, Y) {

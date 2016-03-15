@@ -54,6 +54,29 @@ Point Brain::level5Death(const State &_state) {
     return Point();
 }
 
+float Brain::closedDirectionNum(const State &state, const Point &point) {
+    auto field = state.field;
+    float directionNum = 4;
+
+    REP (i, DIRECTION_NUM - 1) {
+        Point d = Direction::directions[i];
+        Point next = point + d;
+        if (field[next.y][next.x].isWall()) continue;
+        if (state.dogPoints.find(next) != state.dogPoints.end()) { // 犬はやわらかい壁
+            directionNum -= 0.6;
+            continue;
+        }
+        if (field[next.y][next.x].isBlock()) {
+            Point nextnext = next + d;
+            if (field[nextnext.y][nextnext.x].isBlock()) continue;                  // 石石は壁
+            if (state.dogPoints.find(nextnext) != state.dogPoints.end()) continue;  // 石犬も壁
+            //本当は石忍者も壁
+        }
+        directionNum -= 1;
+    }
+    return directionNum;
+}
+
 bool Brain::canMove(const State &state, const Point me, const Point direction) {
     Point nextPos = me + direction;
     if (!nextPos.isInsideField()) return false;
@@ -246,18 +269,6 @@ int Brain::setBestPath(const State &_state, const int step,
                            getSouls.begin(), getSouls.end(),
                            back_inserter(restSouls));
 
-            // ソウルへの距離
-            int soulDistPoint = 0;
-            REP(i, 8) {
-                auto itr = restSouls.begin() + i;
-                if (itr == restSouls.end()) break;
-                Point p = *itr;
-                soulDistPoint += Evaluation::soulDistScore(state.stepsToNinjas[p.y][p.x]);
-            }
-
-
-            score += soulPoint + soulDistPoint;
-
             // 犬移動
             if (state.doppelganger.isInsideField()) {
                 state.setStepsToDoppel(state.doppelganger);
@@ -265,6 +276,25 @@ int Brain::setBestPath(const State &_state, const int step,
             setNextDogs(&state);
             int dogPoint = getDogScore(state);
             score += dogPoint;
+
+            // ソウルへの距離
+            state.setStepsToReachableCellFromNinja();
+            int soulDistPoint = 0;
+            for (Point p : restSouls) {
+                int step = state.stepsToReachableCellNinjas[p.y][p.x];
+                if (step != INF) {
+                    soulDistPoint += Evaluation::soulDistScore(step);
+                }
+            }
+
+            score += soulPoint + soulDistPoint;
+
+            int closedPoint = 0; // どれだけ犬・壁に塞がれているか
+            REP (i, NINJA_NUM) {
+                int closedNum = closedDirectionNum(state, state.ninjas[i].point);
+                closedPoint += Evaluation::closedDirectionScore(closedNum);
+            }
+
 
 #ifdef DEBUG
             cerr << getSouls.size() << " ";
@@ -456,7 +486,7 @@ int Brain::deleteBlockBestPoint(const State &_state, const int scoreThreshold, s
 }
 
 int Brain::deleteBlockWorstPoint(const State &_state, const int scoreThreshold, string *outSkill,
-                                vector<Point> *outPath0, vector<Point> *outPath1) {
+                                 vector<Point> *outPath0, vector<Point> *outPath1) {
 
     vector<Point> path0;
     vector<Point> path1;
@@ -515,7 +545,7 @@ void Brain::simulate(const State &_state, const State &enemyState, string *outSk
     // 影分身
     State state = _state;
     if (defaultScore < Evaluation::mySkillThreshld &&
-            state.power >= state.skillPower[Skill::DoppelMe]) {
+        state.power >= state.skillPower[Skill::DoppelMe]) {
         int score = doppelBestPoint(state,
                                     defaultScore + Evaluation::doppelThreshold(state.skillPower[Skill::DoppelMe]),
                                     outSkill, outPath0, outPath1);
@@ -527,7 +557,7 @@ void Brain::simulate(const State &_state, const State &enemyState, string *outSk
     // 近くの石けす
     state = _state;
     if (defaultScore < Evaluation::mySkillThreshld &&
-            state.power >= state.skillPower[Skill::DeleteBlockMe]) {
+        state.power >= state.skillPower[Skill::DeleteBlockMe]) {
         int minScore = defaultScore + Evaluation::deleteStoneThreshold(state.skillPower[Skill::DeleteBlockMe]);
         minScore = max(minScore, bestScore);
         int score = deleteBlockBestPoint(state,
@@ -541,7 +571,7 @@ void Brain::simulate(const State &_state, const State &enemyState, string *outSk
     // speed
     state = _state;
     if (defaultScore < Evaluation::mySkillThreshld &&
-            state.skillPower[Skill::Speed] <= Evaluation::speedPowerThreshold) {
+        state.skillPower[Skill::Speed] <= Evaluation::speedPowerThreshold) {
         if (state.power > state.skillPower[Skill::Speed] &&
             state.power > state.skillPower[Skill::DoppelMe] * 3) {
             path0.clear();

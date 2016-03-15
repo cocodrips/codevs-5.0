@@ -32,8 +32,6 @@ TEST(BrainTest,can_move_block) {
 
     EXPECT_FALSE(Brain::canMove(state, state.ninjas[1].point, direction));
 
-//    state.setStepsToNinjas();
-//    state.dumpField(cout);
 }
 
 
@@ -55,7 +53,7 @@ TEST(BrainTest,move_to_destination) {
     state.ninjas[0].point = me;
 
     state.setStepsToNinjas();
-    state.dumpField(cout);
+//    state.dumpField(cout);
     EXPECT_TRUE(score > -INF);
 }
 
@@ -66,19 +64,20 @@ TEST(BrainTest, pinch_doppel) {
     Input::mainInput(&controller, f);
     State state = controller.myState;
 
-    state.dumpField(cout);
+}
 
-//    Point me = state.ninjas[0].point;
-//    vector<Point> path(2);
-//    path[0] = Point(1, 0);
-//    path[1] = Point(1, 0);
-//
-//    vector<Point> getSouls;
-//    set<Point> souls;
-//    int score = Brain::moveToDestination(&state, &me, path, &getSouls, souls);
-//    state.ninjas[0].point = me;
-//
-//    state.setStepsToNinjas();
-//    state.dumpField(cout);
-//    EXPECT_TRUE(score > -INF);
+
+TEST(BrainTest, closed_direction_num) {
+    Controller controller = Controller();
+    ifstream f("inputs/4closed_pos.txt");
+    ASSERT_FALSE(f.fail());
+    Input::mainInput(&controller, f);
+
+    State state = controller.myState;
+    int num0 = Brain::closedDirectionNum(state, state.ninjas[0].point);
+    int num1 = Brain::closedDirectionNum(state, state.ninjas[1].point);
+    cout << "== " << num0 << " " << num1 << endl;
+//    EXPECT_EQ(num0, 1);
+//    EXPECT_EQ(num1, 3);
+
 }

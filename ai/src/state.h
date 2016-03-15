@@ -15,7 +15,7 @@ public:
     vector<Character> ninjas;
     vector<vector<Cell>> field;
     set<Point> dogPoints;
-    map<Point, Character>dogs;
+    map<Point, Character> dogs;
     set<Point> souls;
 
     Point doppelganger;
@@ -24,13 +24,15 @@ public:
     vector<vector<Point> > nextStep;
     vector<vector<int> > stepsToNinjas;
     vector<vector<int> > stepsToDopperl;
+    vector<vector<int> > stepsToReachableCellNinjas;
+
     State();
+
     void setStepsToNinjas();
 
     void setStepsToDoppel(Point doppel);
 
-
-
+    void setStepsToReachableCellFromNinja();
 
     void start();
 
@@ -39,7 +41,11 @@ public:
     set<int> distToNinja(const Point &pos) const;
 
     vector<vector<int>> stepsFromPoints(vector<Point> points);
+
+    vector<vector<int>> stepsToReachableCell(vector<Point> points);
+
     void dumpStepsToNinjas(ostream &cerr);
+
     void dumpStepsToDoppel(ostream &cerr);
 
 private:

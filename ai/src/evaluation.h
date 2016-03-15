@@ -13,9 +13,15 @@ const int doppelTestPointY[] = {1, 7, 12, 15};
 const int doppelTestPointX[] = {1, 7, 12};
 
 int speedThreshold(int power);
+
 int deleteStoneThreshold(int power);
+
 int dropStoneEnemyThreshold(int power);
+
 int doppelThreshold(int power);
+
+int closedDirectionScore(float closedDirectionNum);
+
 
 int dogDistScore(int dist);
 
